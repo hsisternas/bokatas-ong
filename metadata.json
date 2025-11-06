@@ -1,0 +1,7 @@
+{
+  "name": "Bokatas ONG",
+  "description": "Una aplicación para que las personas sin hogar encuentren fácilmente recursos como refugios, bancos de alimentos y servicios de salud en su ciudad.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
