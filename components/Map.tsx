@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { Resource, Geolocation } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY; // <-- ASUMIENDO CRA
 
+// ... (loadScript se queda igual) ...
 let scriptLoadingPromise: Promise<void> | null = null;
 
 const loadScript = () => {
@@ -37,7 +38,6 @@ const loadScript = () => {
 interface MapProps {
   resources: Resource[];
   onMarkerClick?: (resourceId: string) => void;
-  // FIX: Made userLocation optional to be used in components without location context like ResourceDetail.
   userLocation?: Geolocation;
   height: string;
 }
@@ -45,7 +45,8 @@ interface MapProps {
 const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, height }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  const markersRef = useRef<(google.maps.Marker | google.maps.InfoWindow)[]>([]);
+  // FIX: Renombrado para ser más claro. Almacenará marcadores e infoWindows.
+  const mapElementsRef = useRef<(google.maps.Marker | google.maps.InfoWindow)[]>([]);
   const { locale, t } = useTranslation();
   const [isApiLoaded, setIsApiLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,16 +77,6 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
   useEffect(() => {
     if (!map) return;
 
-    // Clear previous markers and info windows
-    markersRef.current.forEach(markerOrInfoWindow => {
-      if ('setMap' in markerOrInfoWindow) {
-        (markerOrInfoWindow as google.maps.Marker).setMap(null);
-      } else {
-        (markerOrInfoWindow as google.maps.InfoWindow).close();
-      }
-    });
-    markersRef.current = [];
-
     const bounds = new window.google.maps.LatLngBounds();
 
     // Add user location marker
@@ -103,7 +94,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
                 strokeWeight: 2,
             },
         });
-        markersRef.current.push(userMarker);
+        mapElementsRef.current.push(userMarker);
         bounds.extend(userMarker.getPosition()!);
     }
 
@@ -117,7 +108,6 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         title: resource.name[locale],
       });
 
-      // FIX: Replaced brittle string replace with a dedicated translation key `viewDetails`.
       const infoWindowContent = `
         <div class="font-sans">
           <h3 class="font-bold text-md mb-1">${resource.name[locale]}</h3>
@@ -130,21 +120,17 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         content: infoWindowContent,
       });
       
-      let infoWindowListener: any;
       const openInfoWindow = () => {
         // Close any other open info windows
-        markersRef.current.forEach(item => {
-            // FIX: Replaced `instanceof` with a property check (`'close' in item`) for robust type guarding.
-            // This correctly identifies InfoWindow objects and allows calling `.close()` without TypeScript errors,
-            // which can occur when `window.google` is typed as `any`.
+        mapElementsRef.current.forEach(item => {
             if ('close' in item) {
                 (item as google.maps.InfoWindow).close();
             }
         });
         infoWindow.open(map, marker);
         
-        // The content is rendered as a string, so we need to add an event listener after it's in the DOM.
-        infoWindowListener = infoWindow.addListener('domready', () => {
+        // El listener 'domready' es necesario para añadir el evento al botón
+        const domReadyListener = infoWindow.addListener('domready', () => {
             const button = document.querySelector(`button[data-resource-id="${resource.id}"]`);
             if (button && onMarkerClick) {
                 button.addEventListener('click', () => {
@@ -152,11 +138,13 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
                 });
             }
         });
+        // IMPORTANTE: Este listener NO se limpia automáticamente,
+        // pero lo limpiaremos con clearInstanceListeners en el cleanup.
       };
       
       marker.addListener('click', openInfoWindow);
 
-      markersRef.current.push(marker, infoWindow);
+      mapElementsRef.current.push(marker, infoWindow);
       bounds.extend(marker.getPosition()!);
     });
 
@@ -169,8 +157,28 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
       }
     }
 
-  }, [map, resources, userLocation, locale, t, onMarkerClick]);
+    // *** ¡LA PARTE IMPORTANTE! ***
+    // Esta es la función de limpieza. Se ejecuta cuando el
+    // componente se desmonta O antes de que este efecto se
+    // vuelva a ejecutar.
+    return () => {
+        mapElementsRef.current.forEach(element => {
+            // 1. Elimina CUALQUIER listener de Google (click, domready, etc.)
+            // Esto previene las fugas de memoria.
+            google.maps.event.clearInstanceListeners(element);
 
+            // 2. Si es un marcador, quítalo del mapa.
+            if ('setMap' in element) {
+                (element as google.maps.Marker).setMap(null);
+            }
+        });
+        // 3. Resetea la referencia
+        mapElementsRef.current = [];
+    };
+
+  }, [map, resources, userLocation, locale, t, onMarkerClick]); // Estas dependencias ahora son "seguras" gracias al useCallback y la limpieza
+
+  // ... (El resto del componente se queda igual) ...
   if (error) {
     return <div style={{ height, width: '100%' }} className="flex items-center justify-center bg-gray-200 text-gray-600">{error}</div>
   }
