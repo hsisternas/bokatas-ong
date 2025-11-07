@@ -4,7 +4,7 @@
   "private": true,
   "description": "Aplicación de recursos para la ONG Bokatas.",
   "scripts": {
-    "preinstall": "exit 0",
+    "preinstall": "echo 'Skipping dependency installation...' && exit 0",
     "build": "echo \"No build step required for this static project.\""
   }
 }
