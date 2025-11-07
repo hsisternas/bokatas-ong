@@ -9,6 +9,7 @@ import Header from './components/Header';
 import LanguageSelector from './components/LanguageSelector';
 import useGeolocation from './hooks/useGeolocation';
 import { useTranslation } from './contexts/LanguageContext';
+import Assistant from './components/Assistant';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>({ type: 'categories' });
@@ -88,19 +89,19 @@ const App: React.FC = () => {
   const showHomeButton = view.type !== 'categories';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-text-main flex flex-col font-sans">
       <Header title={getTitle()} showBackButton={showBackButton} onBack={navigateBack}>
         <LanguageSelector />
       </Header>
       
-      <main className="flex-grow container mx-auto p-4">
+      <main className="flex-grow container mx-auto px-6 py-4">
         {renderContent()}
       </main>
 
       {showHomeButton && (
         <button
           onClick={navigateToHome}
-          className="fixed bottom-6 end-6 bg-[#22A9DF] text-white rounded-full p-4 shadow-lg hover:bg-[#1f98c8] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#22A9DF] transition-transform transform hover:scale-110 z-20"
+          className="fixed bottom-6 end-6 bg-primary text-white rounded-full p-4 shadow-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-transform transform hover:scale-110 z-20"
           aria-label={t('home')}
         >
           <span className="material-symbols-outlined">home</span>
