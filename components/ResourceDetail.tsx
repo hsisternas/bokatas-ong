@@ -13,7 +13,7 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({ resource }) => {
   const hasCoordinates = resource.coordinates && resource.coordinates.lat !== 0;
 
   return (
-    <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
       {hasCoordinates && (
         <div className="h-64">
            <Map resources={[resource]} height="100%" />
@@ -21,22 +21,22 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({ resource }) => {
       )}
       
       <div className="p-6">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">{resource.name[locale]}</h1>
-        <p className="text-gray-600 mb-6">{resource.description[locale]}</p>
+        <h1 className="text-2xl font-bold text-text-main mb-2">{resource.name[locale]}</h1>
+        <p className="text-text-light mb-6">{resource.description[locale]}</p>
         
         <div className="space-y-4">
           {resource.address && (
             <div className="flex items-start">
-              <span className="material-symbols-outlined text-[#22A9DF] w-6 text-center me-3 mt-1 flex-shrink-0">location_on</span>
+              <span className="material-symbols-outlined text-primary w-6 text-center me-3 mt-1 flex-shrink-0">location_on</span>
               <div>
-                <h2 className="font-semibold text-gray-700">{t('address')}</h2>
-                <p className="text-gray-600">{resource.address}</p>
+                <h2 className="font-semibold text-text-main">{t('address')}</h2>
+                <p className="text-text-light">{resource.address}</p>
                 {hasCoordinates && (
                     <a
                         href={`https://www.google.com/maps/dir/?api=1&destination=${resource.coordinates.lat},${resource.coordinates.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-[#22A9DF] hover:underline text-sm font-semibold"
+                        className="text-primary hover:underline text-sm font-semibold"
                     >
                         {t('getDirections')}
                     </a>
@@ -47,30 +47,30 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({ resource }) => {
 
           {resource.phone && (
             <div className="flex items-start">
-              <span className="material-symbols-outlined text-[#22A9DF] w-6 text-center me-3 mt-1 flex-shrink-0">call</span>
+              <span className="material-symbols-outlined text-primary w-6 text-center me-3 mt-1 flex-shrink-0">call</span>
               <div>
-                <h2 className="font-semibold text-gray-700">{t('phone')}</h2>
-                <a href={`tel:${resource.phone.replace(/\s/g, '')}`} className="text-gray-600 hover:text-[#22A9DF] hover:underline">{resource.phone}</a>
+                <h2 className="font-semibold text-text-main">{t('phone')}</h2>
+                <a href={`tel:${resource.phone.replace(/\s/g, '')}`} className="text-text-light hover:text-primary hover:underline">{resource.phone}</a>
               </div>
             </div>
           )}
 
           {resource.email && (
             <div className="flex items-start">
-              <span className="material-symbols-outlined text-[#22A9DF] w-6 text-center me-3 mt-1 flex-shrink-0">mail</span>
+              <span className="material-symbols-outlined text-primary w-6 text-center me-3 mt-1 flex-shrink-0">mail</span>
               <div>
-                <h2 className="font-semibold text-gray-700">{t('email')}</h2>
-                <a href={`mailto:${resource.email}`} className="text-gray-600 hover:text-[#22A9DF] hover:underline break-all">{resource.email}</a>
+                <h2 className="font-semibold text-text-main">{t('email')}</h2>
+                <a href={`mailto:${resource.email}`} className="text-text-light hover:text-primary hover:underline break-all">{resource.email}</a>
               </div>
             </div>
           )}
 
           {resource.hours && (
             <div className="flex items-start">
-              <span className="material-symbols-outlined text-[#22A9DF] w-6 text-center me-3 mt-1 flex-shrink-0">schedule</span>
+              <span className="material-symbols-outlined text-primary w-6 text-center me-3 mt-1 flex-shrink-0">schedule</span>
               <div>
-                <h2 className="font-semibold text-gray-700">{t('hours')}</h2>
-                <p className="text-gray-600">{resource.hours}</p>
+                <h2 className="font-semibold text-text-main">{t('hours')}</h2>
+                <p className="text-text-light">{resource.hours}</p>
               </div>
             </div>
           )}

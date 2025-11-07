@@ -3,7 +3,7 @@ import React from 'react';
 // Componente base para renderizar iconos de Material Symbols
 const Icon: React.FC<{ iconName: string; className?: string }> = ({ iconName, className, ...props }) => (
     <span 
-      className={`material-symbols-outlined flex items-center justify-center text-3xl sm:text-5xl ${className}`} 
+      className={`material-symbols-outlined flex items-center justify-center ${className}`} 
       {...props}
     >
         {iconName}

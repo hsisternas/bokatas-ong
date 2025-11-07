@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { Category, Resource, View } from './types';
 import { getCategories, getResources } from './services/resourceService';
@@ -8,6 +9,7 @@ import Header from './components/Header';
 import LanguageSelector from './components/LanguageSelector';
 import useGeolocation from './hooks/useGeolocation';
 import { useTranslation } from './contexts/LanguageContext';
+import Assistant from './components/Assistant';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>({ type: 'categories' });
@@ -29,12 +31,21 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Scroll to top on view change
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [view]);
+
   const navigateToCategory = (category: Category) => {
     setView({ type: 'list', category });
   };
 
   const navigateToDetail = (resource: Resource) => {
     setView({ type: 'detail', resource });
+  };
+
+  const navigateToHome = () => {
+    setView({ type: 'categories' });
   };
 
   const navigateBack = () => {
@@ -75,16 +86,27 @@ const App: React.FC = () => {
   };
   
   const showBackButton = view.type === 'list' || view.type === 'detail';
+  const showHomeButton = view.type !== 'categories';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-text-main flex flex-col font-sans">
       <Header title={getTitle()} showBackButton={showBackButton} onBack={navigateBack}>
         <LanguageSelector />
       </Header>
       
-      <main className="flex-grow container mx-auto p-4">
+      <main className="flex-grow container mx-auto px-6 py-4">
         {renderContent()}
       </main>
+
+      {showHomeButton && (
+        <button
+          onClick={navigateToHome}
+          className="fixed bottom-6 end-6 bg-primary text-white rounded-full p-4 shadow-lg hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-transform transform hover:scale-110 z-20"
+          aria-label={t('home')}
+        >
+          <span className="material-symbols-outlined">home</span>
+        </button>
+      )}
     </div>
   );
 };

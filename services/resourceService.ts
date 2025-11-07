@@ -4,7 +4,6 @@ import {
   FoodIcon,
   HealthIcon,
   WorkIcon,
-  MapIcon,
   InfoIcon,
   ShowerIcon,
   ClothesIcon,
@@ -88,12 +87,6 @@ const categories: Category[] = [
     name: { es: 'Equipos de Calle', en: 'Street Teams', it: 'Unità di Strada', ar: 'فرق الشوارع', fr: 'Équipes de Rue' },
     description: { es: 'Ayuda y comida en la calle.', en: 'Help and food on the street.', it: 'Aiuto e cibo in strada.', ar: 'المساعدة والطعام في الشارع', fr: 'Aide et nourriture dans la rue.' },
     icon: StreetIcon 
-  },
-  { 
-    id: 'mapa', 
-    name: { es: 'Mapa Albergues', en: 'Shelter Map', it: 'Mappa Rifugi', ar: 'خريطة الملاجئ', fr: 'Carte des Hébergements' },
-    description: { es: 'Mapa de gestión de albergues.', en: 'Shelter management map.', it: 'Mappa di gestione dei rifugi.', ar: 'خريطة إدارة الملاجئ', fr: 'Carte de gestion des hébergements.' },
-    icon: MapIcon 
   },
   { 
     id: 'otros', 

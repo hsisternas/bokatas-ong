@@ -2,9 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { Resource, Geolocation } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY; // <-- ASUMIENDO CRA
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-// ... (loadScript se queda igual) ...
 let scriptLoadingPromise: Promise<void> | null = null;
 
 const loadScript = () => {
@@ -17,8 +16,9 @@ const loadScript = () => {
       return;
     }
     if (!GOOGLE_MAPS_API_KEY) {
-        console.error("Google Maps API key is not configured.");
-        reject(new Error("Google Maps API key is not configured."));
+        const errorMsg = "Google Maps API key is not configured. Please set the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.";
+        console.error(errorMsg);
+        reject(new Error(errorMsg));
         return;
     }
     const script = document.createElement('script');
@@ -45,8 +45,7 @@ interface MapProps {
 const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, height }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<google.maps.Map | null>(null);
-  // FIX: Renombrado para ser más claro. Almacenará marcadores e infoWindows.
-  const mapElementsRef = useRef<(google.maps.Marker | google.maps.InfoWindow)[]>([]);
+  const markersRef = useRef<(google.maps.Marker | google.maps.InfoWindow)[]>([]);
   const { locale, t } = useTranslation();
   const [isApiLoaded, setIsApiLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +76,16 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
   useEffect(() => {
     if (!map) return;
 
+    // Clear previous markers and info windows
+    markersRef.current.forEach(markerOrInfoWindow => {
+      if ('setMap' in markerOrInfoWindow) {
+        (markerOrInfoWindow as google.maps.Marker).setMap(null);
+      } else {
+        (markerOrInfoWindow as google.maps.InfoWindow).close();
+      }
+    });
+    markersRef.current = [];
+
     const bounds = new window.google.maps.LatLngBounds();
 
     // Add user location marker
@@ -88,13 +97,13 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
             icon: {
                 path: window.google.maps.SymbolPath.CIRCLE,
                 scale: 7,
-                fillColor: '#22A9DF',
+                fillColor: '#2AA7DF', // --primary color
                 fillOpacity: 1,
                 strokeColor: 'white',
                 strokeWeight: 2,
             },
         });
-        mapElementsRef.current.push(userMarker);
+        markersRef.current.push(userMarker);
         bounds.extend(userMarker.getPosition()!);
     }
 
@@ -112,7 +121,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         <div class="font-sans">
           <h3 class="font-bold text-md mb-1">${resource.name[locale]}</h3>
           <p class="text-sm text-gray-600">${resource.address}</p>
-          ${onMarkerClick ? `<button class="text-[#22A9DF] hover:underline text-sm mt-2" data-resource-id="${resource.id}">${t('viewDetails')}</button>` : ''}
+          ${onMarkerClick ? `<button class="text-primary hover:underline text-sm mt-2" data-resource-id="${resource.id}">${t('viewDetails')}</button>` : ''}
         </div>
       `;
 
@@ -120,17 +129,17 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         content: infoWindowContent,
       });
       
+      let infoWindowListener: any;
       const openInfoWindow = () => {
         // Close any other open info windows
-        mapElementsRef.current.forEach(item => {
+        markersRef.current.forEach(item => {
             if ('close' in item) {
                 (item as google.maps.InfoWindow).close();
             }
         });
         infoWindow.open(map, marker);
         
-        // El listener 'domready' es necesario para añadir el evento al botón
-        const domReadyListener = infoWindow.addListener('domready', () => {
+        infoWindowListener = infoWindow.addListener('domready', () => {
             const button = document.querySelector(`button[data-resource-id="${resource.id}"]`);
             if (button && onMarkerClick) {
                 button.addEventListener('click', () => {
@@ -138,13 +147,11 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
                 });
             }
         });
-        // IMPORTANTE: Este listener NO se limpia automáticamente,
-        // pero lo limpiaremos con clearInstanceListeners en el cleanup.
       };
       
       marker.addListener('click', openInfoWindow);
 
-      mapElementsRef.current.push(marker, infoWindow);
+      markersRef.current.push(marker, infoWindow);
       bounds.extend(marker.getPosition()!);
     });
 
@@ -157,35 +164,15 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
       }
     }
 
-    // *** ¡LA PARTE IMPORTANTE! ***
-    // Esta es la función de limpieza. Se ejecuta cuando el
-    // componente se desmonta O antes de que este efecto se
-    // vuelva a ejecutar.
-    return () => {
-        mapElementsRef.current.forEach(element => {
-            // 1. Elimina CUALQUIER listener de Google (click, domready, etc.)
-            // Esto previene las fugas de memoria.
-            google.maps.event.clearInstanceListeners(element);
+  }, [map, resources, userLocation, locale, t, onMarkerClick]);
 
-            // 2. Si es un marcador, quítalo del mapa.
-            if ('setMap' in element) {
-                (element as google.maps.Marker).setMap(null);
-            }
-        });
-        // 3. Resetea la referencia
-        mapElementsRef.current = [];
-    };
-
-  }, [map, resources, userLocation, locale, t, onMarkerClick]); // Estas dependencias ahora son "seguras" gracias al useCallback y la limpieza
-
-  // ... (El resto del componente se queda igual) ...
   if (error) {
     return <div style={{ height, width: '100%' }} className="flex items-center justify-center bg-gray-200 text-gray-600">{error}</div>
   }
   
   if (!GOOGLE_MAPS_API_KEY) {
     return <div style={{ height, width: '100%' }} className="flex items-center justify-center bg-red-100 text-red-700 p-4 text-center">
-        Map is not available. The Google Maps API key is missing.
+        Map is not available. Please configure the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.
     </div>
   }
 
