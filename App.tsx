@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import type { Category, Resource, View } from './types';
 import { getCategories, getResources } from './services/resourceService';
@@ -30,21 +29,12 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Scroll to top on view change
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [view]);
-
   const navigateToCategory = (category: Category) => {
     setView({ type: 'list', category });
   };
 
   const navigateToDetail = (resource: Resource) => {
     setView({ type: 'detail', resource });
-  };
-
-  const navigateToHome = () => {
-    setView({ type: 'categories' });
   };
 
   const navigateBack = () => {
@@ -85,7 +75,6 @@ const App: React.FC = () => {
   };
   
   const showBackButton = view.type === 'list' || view.type === 'detail';
-  const showHomeButton = view.type !== 'categories';
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -96,16 +85,6 @@ const App: React.FC = () => {
       <main className="flex-grow container mx-auto p-4">
         {renderContent()}
       </main>
-
-      {showHomeButton && (
-        <button
-          onClick={navigateToHome}
-          className="fixed bottom-6 end-6 bg-[#22A9DF] text-white rounded-full p-4 shadow-lg hover:bg-[#1f98c8] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#22A9DF] transition-transform transform hover:scale-110 z-20"
-          aria-label={t('home')}
-        >
-          <span className="material-symbols-outlined">home</span>
-        </button>
-      )}
     </div>
   );
 };
