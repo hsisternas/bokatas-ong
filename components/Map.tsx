@@ -97,7 +97,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
             icon: {
                 path: window.google.maps.SymbolPath.CIRCLE,
                 scale: 7,
-                fillColor: '#2AA7DF', // --primary color
+                fillColor: '#22A9DF',
                 fillOpacity: 1,
                 strokeColor: 'white',
                 strokeWeight: 2,
@@ -121,7 +121,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         <div class="font-sans">
           <h3 class="font-bold text-md mb-1">${resource.name[locale]}</h3>
           <p class="text-sm text-gray-600">${resource.address}</p>
-          ${onMarkerClick ? `<button class="text-primary hover:underline text-sm mt-2" data-resource-id="${resource.id}">${t('viewDetails')}</button>` : ''}
+          ${onMarkerClick ? `<button class="text-[#22A9DF] hover:underline text-sm mt-2" data-resource-id="${resource.id}">${t('viewDetails')}</button>` : ''}
         </div>
       `;
 

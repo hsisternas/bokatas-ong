@@ -15,7 +15,6 @@ export const translations: Translations = {
     // Navegación y Títulos
     home: 'Inicio',
     appName: 'Bokatas ONG',
-    headerSubtitle: 'Acompañamos a personas sin hogar',
     // Lista de recursos
     distanceUnit: 'km',
     noResources: 'No hay recursos disponibles en esta categoría.',
@@ -44,7 +43,6 @@ export const translations: Translations = {
     // Navigation & Titles
     home: 'Home',
     appName: 'Bokatas ONG',
-    headerSubtitle: 'Supporting people experiencing homelessness',
     // Resource List
     distanceUnit: 'km',
     noResources: 'No resources available in this category.',
@@ -71,7 +69,6 @@ export const translations: Translations = {
     // Navigazione e Titoli
     home: 'Inizio',
     appName: 'Bokatas ONG',
-    headerSubtitle: 'Accompagniamo le persone senza fissa dimora',
     // Elenco Risorse
     distanceUnit: 'km',
     noResources: 'Nessuna risorsa disponibile in questa categoria.',
@@ -98,7 +95,6 @@ export const translations: Translations = {
     // التنقل والعناوين
     home: 'الرئيسية',
     appName: 'Bokatas ONG',
-    headerSubtitle: 'نرافق الأشخاص بلا مأوى',
     // قائمة الموارد
     distanceUnit: 'كم',
     noResources: 'لا توجد موارد متاحة في هذه الفئة.',
@@ -125,7 +121,6 @@ export const translations: Translations = {
     // Navigation & Titres
     home: 'Accueil',
     appName: 'Bokatas ONG',
-    headerSubtitle: 'Nous accompagnons les personnes sans abri',
     // Liste des ressources
     distanceUnit: 'km',
     noResources: 'Aucune ressource disponible dans cette catégorie.',
