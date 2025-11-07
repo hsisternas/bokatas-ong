@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { Resource, Geolocation } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 
-const GOOGLE_MAPS_API_KEY = process.env.API_KEY;
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 let scriptLoadingPromise: Promise<void> | null = null;
 
@@ -16,7 +16,7 @@ const loadScript = () => {
       return;
     }
     if (!GOOGLE_MAPS_API_KEY) {
-        const errorMsg = "Google Maps API key is not configured. Please set the API_KEY environment variable.";
+        const errorMsg = "Google Maps API key is not configured. Please set the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.";
         console.error(errorMsg);
         reject(new Error(errorMsg));
         return;
@@ -97,7 +97,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
             icon: {
                 path: window.google.maps.SymbolPath.CIRCLE,
                 scale: 7,
-                fillColor: '#2AA7DF', // --primary color
+                fillColor: '#22A9DF',
                 fillOpacity: 1,
                 strokeColor: 'white',
                 strokeWeight: 2,
@@ -121,7 +121,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         <div class="font-sans">
           <h3 class="font-bold text-md mb-1">${resource.name[locale]}</h3>
           <p class="text-sm text-gray-600">${resource.address}</p>
-          ${onMarkerClick ? `<button class="text-primary hover:underline text-sm mt-2" data-resource-id="${resource.id}">${t('viewDetails')}</button>` : ''}
+          ${onMarkerClick ? `<button class="text-[#22A9DF] hover:underline text-sm mt-2" data-resource-id="${resource.id}">${t('viewDetails')}</button>` : ''}
         </div>
       `;
 
@@ -172,7 +172,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
   
   if (!GOOGLE_MAPS_API_KEY) {
     return <div style={{ height, width: '100%' }} className="flex items-center justify-center bg-red-100 text-red-700 p-4 text-center">
-        Map is not available. Please configure the API_KEY environment variable.
+        Map is not available. Please configure the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.
     </div>
   }
 

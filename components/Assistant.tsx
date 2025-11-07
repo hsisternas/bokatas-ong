@@ -48,12 +48,12 @@ const Assistant: React.FC = () => {
         <div className="space-y-4">
           {messages.map((msg, index) => (
             <div key={index} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {msg.sender === 'bot' && <i className="fa-solid fa-robot text-xl text-primary self-start"></i>}
+              {msg.sender === 'bot' && <i className="fa-solid fa-robot text-xl text-blue-500 self-start"></i>}
               <div
                 className={`max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-2xl ${
                   msg.sender === 'user'
-                    ? 'bg-primary text-white rounded-se-none'
-                    : 'bg-secondary text-text-main rounded-ss-none'
+                    ? 'bg-blue-600 text-white rounded-se-none'
+                    : 'bg-gray-200 text-gray-800 rounded-ss-none'
                 }`}
               >
                 <p className="text-start">{msg.text}</p>
@@ -62,8 +62,8 @@ const Assistant: React.FC = () => {
           ))}
           {isLoading && (
             <div className="flex items-end gap-2 justify-start">
-               <i className="fa-solid fa-robot text-xl text-primary self-start"></i>
-              <div className="px-4 py-3 bg-secondary rounded-2xl rounded-ss-none">
+               <i className="fa-solid fa-robot text-xl text-blue-500 self-start"></i>
+              <div className="px-4 py-3 bg-gray-200 rounded-2xl rounded-ss-none">
                  <div className="flex items-center justify-center space-x-1">
                     <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
                     <div className="w-2 h-2 bg-gray-500 rounded-full animate-pulse [animation-delay:-0.15s]"></div>
@@ -83,13 +83,13 @@ const Assistant: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
             placeholder={t('assistantPlaceholder')}
-            className="flex-grow px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
+            className="flex-grow px-4 py-2 border rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoading}
           />
           <button
             onClick={handleSend}
             disabled={isLoading || input.trim() === ''}
-            className="bg-primary text-white rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            className="bg-blue-600 text-white rounded-full h-10 w-10 flex-shrink-0 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
             <i className="fa-solid fa-paper-plane"></i>
           </button>

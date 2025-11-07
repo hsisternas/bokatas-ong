@@ -34,12 +34,12 @@ const ResourceCard: React.FC<{ resource: Resource, distance: number | null, onSe
   return (
     <div
       onClick={onSelect}
-      className="bg-white rounded-2xl shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer p-4 flex flex-col"
+      className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer p-4 flex flex-col"
     >
-      <h3 className="text-lg font-bold text-text-main">{resource.name[locale]}</h3>
-      <p className="text-sm text-text-light mt-1 flex-grow">{resource.description[locale]}</p>
+      <h3 className="text-lg font-bold text-gray-800">{resource.name[locale]}</h3>
+      <p className="text-sm text-gray-600 mt-1 flex-grow">{resource.description[locale]}</p>
       {distance !== null && distance > 0 && (
-        <p className="text-sm text-primary font-semibold mt-2">
+        <p className="text-sm text-[#22A9DF] font-semibold mt-2">
           {distance.toFixed(2)} {t('distanceUnit')}
         </p>
       )}
