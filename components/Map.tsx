@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import type { Resource, Geolocation } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 
-const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY;
+const GOOGLE_MAPS_API_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 let scriptLoadingPromise: Promise<void> | null = null;
 
@@ -16,8 +16,9 @@ const loadScript = () => {
       return;
     }
     if (!GOOGLE_MAPS_API_KEY) {
-        console.error("Google Maps API key is not configured.");
-        reject(new Error("Google Maps API key is not configured."));
+        const errorMsg = "Google Maps API key is not configured. Please set the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.";
+        console.error(errorMsg);
+        reject(new Error(errorMsg));
         return;
     }
     const script = document.createElement('script');
@@ -37,7 +38,6 @@ const loadScript = () => {
 interface MapProps {
   resources: Resource[];
   onMarkerClick?: (resourceId: string) => void;
-  // FIX: Made userLocation optional to be used in components without location context like ResourceDetail.
   userLocation?: Geolocation;
   height: string;
 }
@@ -97,7 +97,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
             icon: {
                 path: window.google.maps.SymbolPath.CIRCLE,
                 scale: 7,
-                fillColor: '#22A9DF',
+                fillColor: '#2AA7DF', // --primary color
                 fillOpacity: 1,
                 strokeColor: 'white',
                 strokeWeight: 2,
@@ -117,12 +117,11 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         title: resource.name[locale],
       });
 
-      // FIX: Replaced brittle string replace with a dedicated translation key `viewDetails`.
       const infoWindowContent = `
         <div class="font-sans">
           <h3 class="font-bold text-md mb-1">${resource.name[locale]}</h3>
           <p class="text-sm text-gray-600">${resource.address}</p>
-          ${onMarkerClick ? `<button class="text-[#22A9DF] hover:underline text-sm mt-2" data-resource-id="${resource.id}">${t('viewDetails')}</button>` : ''}
+          ${onMarkerClick ? `<button class="text-primary hover:underline text-sm mt-2" data-resource-id="${resource.id}">${t('viewDetails')}</button>` : ''}
         </div>
       `;
 
@@ -134,16 +133,12 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
       const openInfoWindow = () => {
         // Close any other open info windows
         markersRef.current.forEach(item => {
-            // FIX: Replaced `instanceof` with a property check (`'close' in item`) for robust type guarding.
-            // This correctly identifies InfoWindow objects and allows calling `.close()` without TypeScript errors,
-            // which can occur when `window.google` is typed as `any`.
             if ('close' in item) {
                 (item as google.maps.InfoWindow).close();
             }
         });
         infoWindow.open(map, marker);
         
-        // The content is rendered as a string, so we need to add an event listener after it's in the DOM.
         infoWindowListener = infoWindow.addListener('domready', () => {
             const button = document.querySelector(`button[data-resource-id="${resource.id}"]`);
             if (button && onMarkerClick) {
@@ -177,7 +172,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
   
   if (!GOOGLE_MAPS_API_KEY) {
     return <div style={{ height, width: '100%' }} className="flex items-center justify-center bg-red-100 text-red-700 p-4 text-center">
-        Map is not available. The Google Maps API key is missing.
+        Map is not available. Please configure the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.
     </div>
   }
 

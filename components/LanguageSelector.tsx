@@ -34,10 +34,10 @@ const LanguageSelector: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="text-white hover:bg-[#1f98c8] rounded-full p-2"
+        className="text-white hover:bg-black/10 rounded-full p-2 transition-colors"
         aria-label="Change language"
       >
-        <span className="material-symbols-outlined text-2xl">language</span>
+        <span className="material-symbols-outlined text-2xl opacity-80 group-hover:opacity-100 transition-opacity">language</span>
       </button>
 
       {isOpen && (
@@ -48,7 +48,7 @@ const LanguageSelector: React.FC = () => {
                 <button
                   onClick={() => handleLanguageChange(code)}
                   className={`w-full text-start px-4 py-2 text-sm ${
-                    locale === code ? 'bg-[#22A9DF]/20 text-[#1f98c8]' : 'text-gray-700'
+                    locale === code ? 'bg-secondary text-primary-dark font-medium' : 'text-text-main'
                   } hover:bg-gray-100`}
                 >
                   <span className="me-2">{flag}</span>
