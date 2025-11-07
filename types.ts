@@ -51,7 +51,7 @@ export interface Category {
   id: string;
   name: LocalizedString;
   description: LocalizedString;
-  icon: React.FC<React.SVGProps<SVGSVGElement>>;
+  icon: React.FC<{ className?: string }>;
 }
 
 export interface Coordinates {
