@@ -4,9 +4,7 @@
   "private": true,
   "description": "Aplicación de recursos para la ONG Bokatas.",
   "scripts": {
+    "preinstall": "exit 0",
     "build": "echo \"No build step required for this static project.\""
-  },
-  "dependencies": {
-    "patch-package": "8.0.0"
   }
 }
