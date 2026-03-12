@@ -37,7 +37,7 @@ Aplicacion React para consultar recursos sociales con despliegue en Firebase.
 2. Crea manualmente usuarios del tipo:
    - `ruta-1@voluntarios.bokatas.local`
    - ...
-   - `ruta-10@voluntarios.bokatas.local`
+   - `ruta-9@voluntarios.bokatas.local`
 3. Asigna una contrasena sencilla a cada responsable de ruta.
 4. En `.env.local` configura:
    - `VITE_FIREBASE_API_KEY`
@@ -53,7 +53,7 @@ Aplicacion React para consultar recursos sociales con despliegue en Firebase.
    - `firebase deploy --only firestore:rules,firestore:indexes`
 3. Las reglas permiten:
    - Lectura publica de recursos.
-   - Escritura solo a usuarios autenticados `ruta-1` ... `ruta-10`.
+   - Escritura solo a usuarios autenticados `ruta-1` ... `ruta-9`.
 
 ## Desarrollo local
 
@@ -79,6 +79,65 @@ La clave de Google Maps JavaScript API vive en el cliente y sera visible en el n
 ## Build
 
 `npm run build`
+
+## Modulo de Suministros (Area voluntarios)
+
+Nueva funcionalidad para gestionar suministros semanales por ruta ISO.
+
+### Pantallas
+
+- `Mi ruta`: base semanal, ajustes (+/-), final calculado y guardado.
+- `Resumen global`: tabla por suministros x rutas con totales.
+- `Lista de compra`: agregados calculados y vista imprimible (`window.print()`).
+
+### Colecciones Firestore
+
+- `routesConfig/{routeId}`:
+  - `routeId`, `displayName`, `active`
+  - `baseWeekly` con campos: `tortilla, pavo, zumos, gazpacho, caldo, fruta, cafeConLeche, cafeSolo`
+  - `updatedAt`, `updatedBy`
+- `routeSupplyWeeks/{routeId_YYYY-Www}`:
+  - `routeId`, `weekKey`
+  - `base`, `adjustments`, `final`
+  - `updatedBy`, `updatedAt`, `createdAt`
+- `supplyRules/global`:
+  - `breadSandwichesPerBar`
+  - `breadBarsPerPack`
+  - `omeletteSandwichesPerUnit`
+  - `turkeySlicesPerSandwich`
+  - `juiceUnitsPerBrick`
+  - `milkUnitsPerBrick`
+  - `brothUnitsPerBrick`
+
+### Formula base
+
+- `final = max(0, base + adjustment)`
+
+### Calculo de compra
+
+- `total_bocadillos = total_tortilla + total_pavo`
+- `barras_necesarias = ceil(total_bocadillos / breadSandwichesPerBar)`
+- `packs_pan = ceil(barras_necesarias / breadBarsPerPack)`
+- `tortillas_necesarias = ceil(total_tortilla / omeletteSandwichesPerUnit)`
+- `lonchas_pavo = total_pavo * turkeySlicesPerSandwich`
+- `briks_zumo = ceil(total_zumos / juiceUnitsPerBrick)`
+- `briks_caldo = ceil(total_caldo / brothUnitsPerBrick)`
+- `briks_leche = ceil(total_cafe_con_leche / milkUnitsPerBrick)`
+- `briks_gazpacho = total_gazpacho`
+- `fruta_total = total_fruta`
+
+### Servicios desacoplados
+
+- `services/supplyCalculations.ts`: formulas, agregados, lista de compra.
+- `services/supplyRules.ts`: carga de reglas parametrizables.
+- `services/supplyService.ts`: persistencia semanal por ruta.
+
+### Permisos (Firestore rules)
+
+- Cada usuario `ruta-1 ... ruta-9` solo escribe su propia ruta.
+- Lectura global de `routeSupplyWeeks` para resumen/lista agregada.
+- `routesConfig` solo lectura/escritura de la propia ruta.
+- `supplyRules/global` solo lectura para usuarios autenticados de ruta.
 
 ## Despliegue
 

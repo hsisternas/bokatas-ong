@@ -1,18 +1,45 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null && request.auth.token.email is string;
+    }
+
+    function isRouteUser() {
+      return isSignedIn() && request.auth.token.email.matches('^ruta-([1-9])@voluntarios\\.bokatas\\.local$');
+    }
+
+    function canAccessRoute(routeId) {
+      return isRouteUser() && request.auth.token.email.matches('^' + routeId + '@voluntarios\\.bokatas\\.local$');
+    }
+
     match /resources/{resourceId} {
       allow read: if true;
-      allow write: if request.auth != null
-        && request.auth.token.email is string
-        && request.auth.token.email.matches('^ruta-(10|[1-9])@voluntarios\\.bokatas\\.local$');
+      allow write: if isRouteUser();
     }
 
     match /resourceOverrides/{resourceId} {
       allow read: if true;
-      allow write: if request.auth != null
-        && request.auth.token.email is string
-        && request.auth.token.email.matches('^ruta-(10|[1-9])@voluntarios\\.bokatas\\.local$');
+      allow write: if isRouteUser();
+    }
+
+    match /routesConfig/{routeId} {
+      allow read, write: if canAccessRoute(routeId);
+    }
+
+    match /routeSupplyWeeks/{docId} {
+      allow read: if isRouteUser();
+      allow write: if isRouteUser()
+        && request.resource.data.routeId is string
+        && request.resource.data.weekKey is string
+        && request.resource.data.routeId.matches('^ruta-([1-9])$')
+        && docId.matches('^' + request.resource.data.routeId + '_[0-9]{4}-W[0-9]{2}$')
+        && request.auth.token.email.matches('^' + request.resource.data.routeId + '@voluntarios\\.bokatas\\.local$');
+    }
+
+    match /supplyRules/{ruleId} {
+      allow read: if isRouteUser();
+      allow write: if false;
     }
   }
 }

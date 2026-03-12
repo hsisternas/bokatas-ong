@@ -2,7 +2,7 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebas
 import { FirebaseError } from 'firebase/app';
 import { auth, isFirebaseAuthConfigured } from './firebaseClient';
 
-const VOLUNTEER_USER_REGEX = /^ruta-(10|[1-9])$/;
+const VOLUNTEER_USER_REGEX = /^ruta-([1-9])$/;
 const VOLUNTEER_EMAIL_DOMAIN = import.meta.env.VITE_VOLUNTEER_EMAIL_DOMAIN || 'voluntarios.bokatas.local';
 
 const requireAuth = () => {
@@ -46,4 +46,15 @@ export const loginVolunteer = async (username: string, password: string): Promis
 export const logoutVolunteer = async (): Promise<void> => {
   requireAuth();
   await signOut(auth!);
+};
+
+export const getRouteIdFromEmail = (email: string | null): string | null => {
+  if (!email) {
+    return null;
+  }
+  const username = email.split('@')[0]?.toLowerCase() || '';
+  if (!VOLUNTEER_USER_REGEX.test(username)) {
+    return null;
+  }
+  return username;
 };

@@ -5,6 +5,8 @@ import VolunteerModules from './volunteer/VolunteerModules';
 
 interface VolunteerAreaProps {
   volunteerName: string;
+  volunteerEmail: string;
+  routeId: string;
   categories: Category[];
   resources: Resource[];
   onResourceAdded: (resource: Resource) => void;
@@ -14,6 +16,8 @@ interface VolunteerAreaProps {
 
 const VolunteerArea: React.FC<VolunteerAreaProps> = ({
   volunteerName,
+  volunteerEmail,
+  routeId,
   categories,
   resources,
   onResourceAdded,
@@ -23,7 +27,7 @@ const VolunteerArea: React.FC<VolunteerAreaProps> = ({
   const { t } = useTranslation();
 
   return (
-    <div className="mx-auto w-full max-w-2xl rounded-2xl bg-white p-6 shadow-lg dark:bg-gray-900">
+    <div className="mx-auto w-full max-w-5xl rounded-2xl bg-white p-3 shadow-lg sm:p-6 dark:bg-gray-900">
       <h2 className="text-2xl font-bold text-text-main">{t('volunteerArea')}</h2>
       <p className="mt-2 text-text-light">
         {t('volunteerWelcome')}: <span className="font-semibold text-text-main">{volunteerName}</span>
@@ -32,6 +36,8 @@ const VolunteerArea: React.FC<VolunteerAreaProps> = ({
 
       <div className="mt-6">
         <VolunteerModules
+          routeId={routeId}
+          userEmail={volunteerEmail}
           categories={categories}
           resources={resources}
           onResourceAdded={onResourceAdded}

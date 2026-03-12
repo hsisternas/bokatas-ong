@@ -3,61 +3,82 @@ import type { Category, Resource } from '../../types';
 import { useTranslation } from '../../contexts/LanguageContext';
 import AddResourceModule from './AddResourceModule';
 import EditResourceModule from './EditResourceModule';
+import SuppliesModule from './supplies/SuppliesModule';
 
 interface VolunteerModulesProps {
+  routeId: string;
+  userEmail: string;
   categories: Category[];
   resources: Resource[];
   onResourceAdded: (resource: Resource) => void;
   onResourceUpdated: (resource: Resource) => void;
 }
 
-type VolunteerModuleId = 'add-resource' | 'edit-resource' | 'upcoming';
+type VolunteerModuleId = 'supplies' | 'add-resource' | 'edit-resource';
 
 const VolunteerModules: React.FC<VolunteerModulesProps> = ({
+  routeId,
+  userEmail,
   categories,
   resources,
   onResourceAdded,
   onResourceUpdated,
 }) => {
   const { t } = useTranslation();
-  const [activeModule, setActiveModule] = useState<VolunteerModuleId>('add-resource');
+  const [activeModule, setActiveModule] = useState<VolunteerModuleId>('supplies');
+  const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+
+  const moduleOptions: { id: VolunteerModuleId; label: string; icon: string }[] = [
+    { id: 'supplies', label: t('volunteerModuleSupplies'), icon: 'lunch_dining' },
+    { id: 'add-resource', label: t('volunteerModuleAddResource'), icon: 'add_location_alt' },
+    { id: 'edit-resource', label: t('volunteerModuleEditResource'), icon: 'edit_location_alt' },
+  ];
+  const activeOption = moduleOptions.find((option) => option.id === activeModule) || moduleOptions[0];
 
   return (
     <div>
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="relative mb-4">
         <button
-          onClick={() => setActiveModule('add-resource')}
-          className={`rounded-full px-3 py-1 text-sm transition-colors ${
-            activeModule === 'add-resource'
-              ? 'bg-primary text-white'
-              : 'bg-secondary text-text-main hover:bg-gray-200 dark:hover:bg-gray-700'
+          onClick={() => setIsSelectorOpen((prev) => !prev)}
+          type="button"
+          className="flex w-full items-center justify-between rounded-xl border border-gray-300 bg-secondary px-3 py-2 text-left text-sm text-text-main dark:border-gray-600 dark:bg-gray-800"
+        >
+          <span className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">{activeOption.icon}</span>
+            <span>{activeOption.label}</span>
+          </span>
+          <span className="material-symbols-outlined text-base">{isSelectorOpen ? 'expand_less' : 'expand_more'}</span>
+        </button>
+
+        <div
+          className={`absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-gray-300 bg-white shadow-lg transition-all dark:border-gray-600 dark:bg-gray-900 ${
+            isSelectorOpen ? 'max-h-64 opacity-100' : 'pointer-events-none max-h-0 opacity-0'
           }`}
         >
-          {t('volunteerModuleAddResource')}
-        </button>
-        <button
-          onClick={() => setActiveModule('edit-resource')}
-          className={`rounded-full px-3 py-1 text-sm transition-colors ${
-            activeModule === 'edit-resource'
-              ? 'bg-primary text-white'
-              : 'bg-secondary text-text-main hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          {t('volunteerModuleEditResource')}
-        </button>
-        <button
-          onClick={() => setActiveModule('upcoming')}
-          className={`rounded-full px-3 py-1 text-sm transition-colors ${
-            activeModule === 'upcoming'
-              ? 'bg-primary text-white'
-              : 'bg-secondary text-text-main hover:bg-gray-200 dark:hover:bg-gray-700'
-          }`}
-        >
-          {t('volunteerModuleUpcoming')}
-        </button>
+          {moduleOptions.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => {
+                setActiveModule(option.id);
+                setIsSelectorOpen(false);
+              }}
+              type="button"
+              className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm ${
+                option.id === activeModule ? 'bg-primary/10 text-primary' : 'text-text-main hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`}
+            >
+              <span className="material-symbols-outlined text-base">{option.icon}</span>
+              <span>{option.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-900">
+      <div className="rounded-xl border border-gray-200 bg-white p-2 sm:p-4 dark:border-gray-700 dark:bg-gray-900">
+        {activeModule === 'supplies' && (
+          <SuppliesModule routeId={routeId} userEmail={userEmail} />
+        )}
+
         {activeModule === 'add-resource' && (
           <AddResourceModule categories={categories} onResourceAdded={onResourceAdded} />
         )}
@@ -68,10 +89,6 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
             resources={resources}
             onResourceUpdated={onResourceUpdated}
           />
-        )}
-
-        {activeModule === 'upcoming' && (
-          <p className="text-sm text-text-light">{t('volunteerModuleUpcomingText')}</p>
         )}
       </div>
     </div>

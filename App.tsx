@@ -13,7 +13,7 @@ import ThemeToggle from './components/ThemeToggle';
 import useGeolocation from './hooks/useGeolocation';
 import { useTranslation } from './contexts/LanguageContext';
 import { isFirebaseAuthConfigured } from './services/firebaseClient';
-import { loginVolunteer, logoutVolunteer, subscribeVolunteerSession } from './services/authService';
+import { getRouteIdFromEmail, loginVolunteer, logoutVolunteer, subscribeVolunteerSession } from './services/authService';
 import { getResourceOverrides, getVolunteerResources } from './services/resourceStoreService';
 
 const App: React.FC = () => {
@@ -133,6 +133,8 @@ const App: React.FC = () => {
         return (
           <VolunteerArea
             volunteerName={volunteerEmail?.split('@')[0] || 'ruta'}
+            volunteerEmail={volunteerEmail || `${volunteerRouteId}@voluntarios.bokatas.local`}
+            routeId={volunteerRouteId}
             categories={categories}
             resources={resources}
             onResourceAdded={handleResourceAdded}
@@ -197,6 +199,7 @@ const App: React.FC = () => {
   
   const showBackButton = view.type === 'list' || view.type === 'detail' || view.type === 'volunteer';
   const showHomeButton = view.type !== 'categories';
+  const volunteerRouteId = getRouteIdFromEmail(volunteerEmail) || 'ruta-1';
 
   return (
     <div className="min-h-screen bg-background text-text-main flex flex-col font-sans">
@@ -207,7 +210,7 @@ const App: React.FC = () => {
         </div>
       </Header>
       
-      <main className="flex-grow container mx-auto px-6 py-4">
+      <main className="flex-grow container mx-auto px-3 py-4 sm:px-6">
         {renderContent()}
       </main>
 
