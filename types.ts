@@ -34,9 +34,19 @@ declare global {
         getCenter(): any;
         isEmpty(): boolean;
       }
+      class Geocoder {
+        geocode(request: any, callback: (results: any[], status: string) => void): void;
+      }
       const SymbolPath: {
         CIRCLE: number;
       };
+      namespace places {
+        class Autocomplete {
+          constructor(inputField: HTMLInputElement, opts?: any);
+          addListener(eventName: string, handler: Function): any;
+          getPlace(): any;
+        }
+      }
     }
   }
 }
@@ -80,4 +90,5 @@ export type Geolocation = {
 export type View =
   | { type: 'categories' }
   | { type: 'list'; category: Category }
-  | { type: 'detail'; resource: Resource };
+  | { type: 'detail'; resource: Resource }
+  | { type: 'volunteer' };

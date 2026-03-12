@@ -1,46 +1,16 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Resource, Geolocation } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
+import { loadGoogleMapsScript } from '../services/googleMapsLoader';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const MISSING_API_KEY_ERROR =
+  'Google Maps API key is not configured. Please set the VITE_GOOGLE_MAPS_API_KEY environment variable.';
 
 let scriptLoadingPromise: Promise<void> | null = null;
 
-// ...
-if (!GOOGLE_MAPS_API_KEY) {
-    const errorMsg = "Google Maps API key is not configured. Please set the VITE_GOOGLE_MAPS_API_KEY environment variable."; // <-- Cámbialo aquí también
-    console.error(errorMsg);
-    reject(new Error(errorMsg));
-    return;
-}
-// ...
-
 const loadScript = () => {
-  if (scriptLoadingPromise) {
-    return scriptLoadingPromise;
-  }
-  scriptLoadingPromise = new Promise((resolve, reject) => {
-    if (window.google && window.google.maps) {
-      resolve();
-      return;
-    }
-    if (!GOOGLE_MAPS_API_KEY) {
-        const errorMsg = "Google Maps API key is not configured. Please set the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.";
-        console.error(errorMsg);
-        reject(new Error(errorMsg));
-        return;
-    }
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => {
-      scriptLoadingPromise = null;
-      reject(new Error('Google Maps script failed to load.'));
-    };
-    document.head.appendChild(script);
-  });
+  scriptLoadingPromise = loadGoogleMapsScript();
   return scriptLoadingPromise;
 };
 
@@ -138,7 +108,6 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         content: infoWindowContent,
       });
       
-      let infoWindowListener: any;
       const openInfoWindow = () => {
         // Close any other open info windows
         markersRef.current.forEach(item => {
@@ -148,7 +117,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         });
         infoWindow.open(map, marker);
         
-        infoWindowListener = infoWindow.addListener('domready', () => {
+        infoWindow.addListener('domready', () => {
             const button = document.querySelector(`button[data-resource-id="${resource.id}"]`);
             if (button && onMarkerClick) {
                 button.addEventListener('click', () => {
@@ -181,7 +150,7 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
   
   if (!GOOGLE_MAPS_API_KEY) {
     return <div style={{ height, width: '100%' }} className="flex items-center justify-center bg-red-100 text-red-700 p-4 text-center">
-        Map is not available. Please configure the NEXT_PUBLIC_GOOGLE_MAPS_API_KEY environment variable.
+        Map is not available. Please configure the VITE_GOOGLE_MAPS_API_KEY environment variable.
     </div>
   }
 

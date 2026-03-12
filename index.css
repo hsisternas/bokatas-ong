@@ -1,0 +1,82 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100dvh;
+}
+
+html,
+body {
+  background-color: #2aa7df;
+}
+
+html.dark,
+html.dark body {
+  background-color: #2aa7df;
+}
+
+#root {
+  background-color: #f9fbfd;
+}
+
+html.dark #root {
+  background-color: #0b1220;
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-fab {
+  bottom: calc(env(safe-area-inset-bottom) + 1.5rem);
+}
+
+html.dark .bg-background {
+  background-color: #0b1220 !important;
+}
+
+html.dark .bg-white {
+  background-color: #111827 !important;
+}
+
+html.dark .bg-secondary,
+html.dark .bg-gray-50,
+html.dark .bg-gray-100,
+html.dark .bg-gray-200 {
+  background-color: #1f2937 !important;
+}
+
+html.dark .text-text-main {
+  color: #f3f4f6 !important;
+}
+
+html.dark .text-text-light,
+html.dark .text-gray-400,
+html.dark .text-gray-500,
+html.dark .text-gray-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .border-t {
+  border-color: #374151 !important;
+}
+
+html.dark .shadow-md,
+html.dark .shadow-lg,
+html.dark .shadow-xl {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35) !important;
+}
+
+html.dark .hover\:bg-gray-100:hover {
+  background-color: #374151 !important;
+}

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { getAssistantResponse } from '../services/geminiService';
+import { getAssistantResponse } from '../services/assistantService';
 import { useTranslation } from '../contexts/LanguageContext';
 
 interface Message {
