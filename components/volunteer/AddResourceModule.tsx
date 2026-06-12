@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Category, Resource } from '../../types';
 import { useTranslation } from '../../contexts/LanguageContext';
 import { addVolunteerResource } from '../../services/resourceStoreService';
@@ -14,10 +14,12 @@ const AddResourceModule: React.FC<AddResourceModuleProps> = ({ categories, onRes
   const [isSaving, setIsSaving] = useState(false);
   const [isMapsReady, setIsMapsReady] = useState(false);
   const [isAutocompleteAvailable, setIsAutocompleteAvailable] = useState(true);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const addressInputRef = React.useRef<HTMLInputElement | null>(null);
-  const autocompleteRef = React.useRef<google.maps.places.Autocomplete | null>(null);
+  const addressInputRef = useRef<HTMLInputElement | null>(null);
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement | null>(null);
 
   const defaultCategory = categories[0]?.id || 'otros';
   const [form, setForm] = useState({
@@ -38,6 +40,20 @@ const AddResourceModule: React.FC<AddResourceModuleProps> = ({ categories, onRes
       setForm((prev) => ({ ...prev, categoryId: defaultCategory }));
     }
   }, [defaultCategory, form.categoryId]);
+
+  useEffect(() => {
+    const handlePointerDownOutside = (event: PointerEvent) => {
+      if (!categoryDropdownRef.current) {
+        return;
+      }
+      if (!categoryDropdownRef.current.contains(event.target as Node)) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDownOutside);
+    return () => document.removeEventListener('pointerdown', handlePointerDownOutside);
+  }, []);
 
   useEffect(() => {
     loadGoogleMapsScript()
@@ -86,8 +102,10 @@ const AddResourceModule: React.FC<AddResourceModuleProps> = ({ categories, onRes
     return categories.map((category) => ({
       id: category.id,
       label: category.name[locale],
+      icon: category.icon,
     }));
   }, [categories, locale]);
+  const selectedCategoryOption = categoryOptions.find((option) => option.id === form.categoryId) || categoryOptions[0] || null;
 
   const updateField = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -204,21 +222,49 @@ const AddResourceModule: React.FC<AddResourceModuleProps> = ({ categories, onRes
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       <div className="grid gap-3 md:grid-cols-2">
-        <label className="text-sm text-text-main">
+        <div className="text-sm text-text-main">
           <span className="mb-1 block">{t('volunteerResourceCategory')}</span>
-          <select
-            value={form.categoryId}
-            onChange={(e) => updateField('categoryId', e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 dark:border-gray-700 dark:bg-gray-800"
-            required
-          >
-            {categoryOptions.map((option) => (
-              <option key={option.id} value={option.id}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          <div className="relative" ref={categoryDropdownRef}>
+            <button
+              onClick={() => setIsCategoryDropdownOpen((prev) => !prev)}
+              type="button"
+              className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-text-main dark:border-gray-700 dark:bg-gray-800"
+            >
+              <span className="flex items-center gap-2">
+                {selectedCategoryOption ? <selectedCategoryOption.icon className="text-base" /> : null}
+                <span>{selectedCategoryOption ? selectedCategoryOption.label : t('volunteerResourceCategory')}</span>
+              </span>
+              <span className="material-symbols-outlined text-base">expand_more</span>
+            </button>
+
+            {isCategoryDropdownOpen && (
+              <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-900">
+                {categoryOptions.map((option) => {
+                  const CategoryIcon = option.icon;
+                  const isActive = form.categoryId === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      onClick={() => {
+                        updateField('categoryId', option.id);
+                        setIsCategoryDropdownOpen(false);
+                      }}
+                      type="button"
+                      className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
+                        isActive
+                          ? 'bg-secondary text-primary-dark'
+                          : 'text-text-main hover:bg-gray-100 dark:hover:bg-gray-800'
+                      }`}
+                    >
+                      <CategoryIcon className="text-base" />
+                      <span>{option.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
 
         <label className="text-sm text-text-main">
           <span className="mb-1 block">{t('volunteerResourceName')}</span>
