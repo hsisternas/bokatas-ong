@@ -41,7 +41,7 @@ const EditResourceModule: React.FC<EditResourceModuleProps> = ({ categories, res
   });
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handlePointerDownOutside = (event: PointerEvent) => {
       if (!categoryDropdownRef.current) {
         return;
       }
@@ -50,8 +50,8 @@ const EditResourceModule: React.FC<EditResourceModuleProps> = ({ categories, res
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('pointerdown', handlePointerDownOutside);
+    return () => document.removeEventListener('pointerdown', handlePointerDownOutside);
   }, []);
 
   const openResource = (resource: Resource) => {
@@ -150,6 +150,7 @@ const EditResourceModule: React.FC<EditResourceModuleProps> = ({ categories, res
         <div className="relative" ref={categoryDropdownRef}>
           <button
             onClick={() => setIsCategoryDropdownOpen((prev) => !prev)}
+            type="button"
             className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-text-main dark:border-gray-700 dark:bg-gray-800"
           >
             <span className="flex items-center gap-2">
@@ -174,6 +175,7 @@ const EditResourceModule: React.FC<EditResourceModuleProps> = ({ categories, res
                       setError(null);
                       setIsCategoryDropdownOpen(false);
                     }}
+                    type="button"
                     className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${
                       isActive
                         ? 'bg-secondary text-primary-dark'
@@ -195,6 +197,7 @@ const EditResourceModule: React.FC<EditResourceModuleProps> = ({ categories, res
           <div key={resource.id} className="space-y-2">
             <button
               onClick={() => openResource(resource)}
+              type="button"
               className={`w-full rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
                 selectedResourceId === resource.id
                   ? 'border-primary bg-secondary text-text-main'

@@ -3,7 +3,7 @@ import { FirebaseError } from 'firebase/app';
 import { auth, isFirebaseAuthConfigured } from './firebaseClient';
 
 const VOLUNTEER_USER_REGEX = /^ruta-([1-9])$/;
-const VOLUNTEER_EMAIL_DOMAIN = import.meta.env.VITE_VOLUNTEER_EMAIL_DOMAIN || 'voluntarios.bokatas.local';
+const VOLUNTEER_EMAIL_DOMAIN = 'voluntarios.bokatas.local';
 
 const requireAuth = () => {
   if (!isFirebaseAuthConfigured || !auth) {

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Category, Resource, View } from './types';
 import { getCategories, getResources } from './services/resourceService';
 import CategoryGrid from './components/CategoryGrid';
@@ -23,7 +23,10 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
+  const [isAuthResolved, setIsAuthResolved] = useState(!isFirebaseAuthConfigured);
+  const [isVolunteerAccessPending, setIsVolunteerAccessPending] = useState(false);
   const [volunteerEmail, setVolunteerEmail] = useState<string | null>(null);
+  const isVolunteerAccessPendingRef = useRef(false);
   
   const { location, requestLocation } = useGeolocation();
   const { t, locale } = useTranslation();
@@ -75,9 +78,20 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
+    isVolunteerAccessPendingRef.current = isVolunteerAccessPending;
+  }, [isVolunteerAccessPending]);
+
+  useEffect(() => {
     const unsubscribe = subscribeVolunteerSession((email) => {
+      setIsAuthResolved(true);
       setVolunteerEmail(email);
+      if (email && isVolunteerAccessPendingRef.current) {
+        setView({ type: 'volunteer' });
+        setIsVolunteerAccessPending(false);
+        return;
+      }
       if (!email) {
+        setIsVolunteerAccessPending(false);
         setView((currentView) => (currentView.type === 'volunteer' ? { type: 'categories' } : currentView));
       }
     });
@@ -130,10 +144,17 @@ const App: React.FC = () => {
       case 'detail':
         return <ResourceDetail resource={view.resource} />;
       case 'volunteer':
+        if (!volunteerEmail) {
+          return (
+            <div className="mx-auto w-full max-w-3xl rounded-2xl bg-white p-6 shadow-lg dark:bg-gray-900">
+              <p className="text-center text-text-light">{t('loading')}</p>
+            </div>
+          );
+        }
         return (
           <VolunteerArea
-            volunteerName={volunteerEmail?.split('@')[0] || 'ruta'}
-            volunteerEmail={volunteerEmail || `${volunteerRouteId}@voluntarios.bokatas.local`}
+            volunteerName={volunteerEmail.split('@')[0] || 'ruta'}
+            volunteerEmail={volunteerEmail}
             routeId={volunteerRouteId}
             categories={categories}
             resources={resources}
@@ -162,10 +183,13 @@ const App: React.FC = () => {
 
   const handleVolunteerLogin = async (username: string, password: string) => {
     setIsAuthLoading(true);
+    setIsVolunteerAccessPending(true);
     try {
       await loginVolunteer(username, password);
       setIsLoginOpen(false);
-      setView({ type: 'volunteer' });
+    } catch (error) {
+      setIsVolunteerAccessPending(false);
+      throw error;
     } finally {
       setIsAuthLoading(false);
     }
@@ -173,6 +197,7 @@ const App: React.FC = () => {
 
   const handleVolunteerLogout = async () => {
     setIsAuthLoading(true);
+    setIsVolunteerAccessPending(false);
     try {
       await logoutVolunteer();
       setView({ type: 'categories' });
@@ -182,6 +207,9 @@ const App: React.FC = () => {
   };
 
   const openVolunteerAccess = () => {
+    if (!isAuthResolved || isAuthLoading) {
+      return;
+    }
     if (volunteerEmail) {
       setView({ type: 'volunteer' });
       return;
@@ -199,7 +227,7 @@ const App: React.FC = () => {
   
   const showBackButton = view.type === 'list' || view.type === 'detail' || view.type === 'volunteer';
   const showHomeButton = view.type !== 'categories';
-  const volunteerRouteId = getRouteIdFromEmail(volunteerEmail) || 'ruta-1';
+  const volunteerRouteId = getRouteIdFromEmail(volunteerEmail);
 
   return (
     <div className="min-h-screen bg-background text-text-main flex flex-col font-sans">
@@ -218,6 +246,7 @@ const App: React.FC = () => {
         <div className="container mx-auto flex justify-center">
           <button
             onClick={openVolunteerAccess}
+            disabled={!isAuthResolved || isAuthLoading}
             className="text-xs text-text-light underline-offset-2 hover:text-primary hover:underline"
           >
             {volunteerEmail ? t('volunteerArea') : t('volunteerAccess')}

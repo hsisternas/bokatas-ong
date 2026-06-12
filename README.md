@@ -44,7 +44,8 @@ Aplicacion React para consultar recursos sociales con despliegue en Firebase.
    - `VITE_FIREBASE_AUTH_DOMAIN`
    - `VITE_FIREBASE_PROJECT_ID`
    - `VITE_FIREBASE_APP_ID`
-   - `VITE_VOLUNTEER_EMAIL_DOMAIN=voluntarios.bokatas.local`
+
+El dominio de los usuarios voluntarios queda fijado en `voluntarios.bokatas.local` para que el frontend coincida con las reglas de Firestore. Si necesitas otro dominio, hay que cambiar cliente y reglas a la vez.
 
 ## Recursos creados por voluntarios (Firestore)
 
@@ -79,6 +80,34 @@ La clave de Google Maps JavaScript API vive en el cliente y sera visible en el n
 ## Build
 
 `npm run build`
+
+## Validacion de regresiones
+
+Con la app levantada en local, hay varios checks automatizados con Playwright:
+
+Usa preferiblemente `http://localhost:3000`. La clave actual de Google Maps no autoriza `http://127.0.0.1:4173`, y en ese host el mapa quedara gris con `RefererNotAllowedMapError`.
+
+- `npm run test:auth-race`
+  valida que el acceso de voluntarios no entre con una ruta equivocada durante el login.
+- `npm run test:map-xss`
+  valida que el popup del mapa no ejecute HTML inyectado y que siga navegando al detalle.
+- `npm run test:list-map`
+  valida que el mapa aparezca por defecto en los listados tanto en desktop como en movil.
+- `npm run test:volunteer-dropdowns`
+  valida cierres al tocar fuera y cambios de modulo/categoria en el area de voluntariado.
+
+### Smoke real con Firebase
+
+Para la comprobacion end-to-end contra Firebase/Firestore:
+
+1. Levanta la app local.
+2. Exporta credenciales reales de una ruta:
+   - `export TEST_VOLUNTEER_USERNAME=ruta-5`
+   - `export TEST_VOLUNTEER_PASSWORD='...'`
+3. Ejecuta:
+   - `npm run test:smoke-real`
+
+Ese smoke comprueba login real, guardado/reversion de suministros y carga del modulo de edicion tanto en desktop como en movil.
 
 ## Modulo de Suministros (Area voluntarios)
 

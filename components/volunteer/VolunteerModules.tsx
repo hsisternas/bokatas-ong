@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { Category, Resource } from '../../types';
 import { useTranslation } from '../../contexts/LanguageContext';
 import AddResourceModule from './AddResourceModule';
@@ -27,6 +27,7 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
   const { t } = useTranslation();
   const [activeModule, setActiveModule] = useState<VolunteerModuleId>('supplies');
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const selectorRef = useRef<HTMLDivElement | null>(null);
 
   const moduleOptions: { id: VolunteerModuleId; label: string; icon: string }[] = [
     { id: 'supplies', label: t('volunteerModuleSupplies'), icon: 'lunch_dining' },
@@ -35,9 +36,23 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
   ];
   const activeOption = moduleOptions.find((option) => option.id === activeModule) || moduleOptions[0];
 
+  useEffect(() => {
+    const handlePointerDownOutside = (event: PointerEvent) => {
+      if (!selectorRef.current) {
+        return;
+      }
+      if (!selectorRef.current.contains(event.target as Node)) {
+        setIsSelectorOpen(false);
+      }
+    };
+
+    document.addEventListener('pointerdown', handlePointerDownOutside);
+    return () => document.removeEventListener('pointerdown', handlePointerDownOutside);
+  }, []);
+
   return (
     <div>
-      <div className="relative mb-4">
+      <div className="relative mb-4" ref={selectorRef}>
         <button
           onClick={() => setIsSelectorOpen((prev) => !prev)}
           type="button"

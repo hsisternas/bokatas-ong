@@ -13,7 +13,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBackButton, onBack, children
   const isHome = title === t('appName');
 
   return (
-    <header className="safe-top bg-gradient-to-br from-primary to-primary-dark text-white shadow-md sticky top-0 z-10 rounded-b-2xl">
+    <header className="safe-top bg-primary text-white shadow-md sticky top-0 z-10 rounded-b-2xl">
       <div className="container mx-auto px-6 py-4 flex justify-between items-center">
         <div className="flex items-center min-w-0">
           {showBackButton && (

@@ -4,14 +4,45 @@ import { useTranslation } from '../contexts/LanguageContext';
 import { loadGoogleMapsScript } from '../services/googleMapsLoader';
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-const MISSING_API_KEY_ERROR =
-  'Google Maps API key is not configured. Please set the VITE_GOOGLE_MAPS_API_KEY environment variable.';
 
 let scriptLoadingPromise: Promise<void> | null = null;
 
 const loadScript = () => {
   scriptLoadingPromise = loadGoogleMapsScript();
   return scriptLoadingPromise;
+};
+
+const buildInfoWindowContent = (
+  resource: Resource,
+  locale: string,
+  viewDetailsLabel: string,
+  onMarkerClick?: (resourceId: string) => void
+): HTMLDivElement => {
+  const container = document.createElement('div');
+  container.className = 'font-sans';
+
+  const title = document.createElement('h3');
+  title.className = 'font-bold text-md mb-1';
+  title.textContent = resource.name[locale as keyof Resource['name']];
+  container.appendChild(title);
+
+  const address = document.createElement('p');
+  address.className = 'text-sm text-gray-600';
+  address.textContent = resource.address;
+  container.appendChild(address);
+
+  if (onMarkerClick) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'text-primary hover:underline text-sm mt-2';
+    button.textContent = viewDetailsLabel;
+    button.addEventListener('click', () => {
+      onMarkerClick(resource.id);
+    });
+    container.appendChild(button);
+  }
+
+  return container;
 };
 
 interface MapProps {
@@ -30,12 +61,21 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    (window as typeof window & { gm_authFailure?: () => void }).gm_authFailure = () => {
+      setError('Map is not available for this URL. Authorize the current host in the Google Maps API key referrer settings.');
+    };
+
     loadScript()
       .then(() => setIsApiLoaded(true))
       .catch(err => {
           console.error(err);
-          setError("Error loading map.");
+          const message = err instanceof Error ? err.message : 'Error loading map.';
+          setError(message);
       });
+
+    return () => {
+      delete (window as typeof window & { gm_authFailure?: () => void }).gm_authFailure;
+    };
   }, []);
 
   useEffect(() => {
@@ -96,16 +136,8 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
         title: resource.name[locale],
       });
 
-      const infoWindowContent = `
-        <div class="font-sans">
-          <h3 class="font-bold text-md mb-1">${resource.name[locale]}</h3>
-          <p class="text-sm text-gray-600">${resource.address}</p>
-          ${onMarkerClick ? `<button class="text-primary hover:underline text-sm mt-2" data-resource-id="${resource.id}">${t('viewDetails')}</button>` : ''}
-        </div>
-      `;
-
       const infoWindow = new window.google.maps.InfoWindow({
-        content: infoWindowContent,
+        content: buildInfoWindowContent(resource, locale, t('viewDetails'), onMarkerClick),
       });
       
       const openInfoWindow = () => {
@@ -116,15 +148,6 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
             }
         });
         infoWindow.open(map, marker);
-        
-        infoWindow.addListener('domready', () => {
-            const button = document.querySelector(`button[data-resource-id="${resource.id}"]`);
-            if (button && onMarkerClick) {
-                button.addEventListener('click', () => {
-                    onMarkerClick(resource.id);
-                });
-            }
-        });
       };
       
       marker.addListener('click', openInfoWindow);
