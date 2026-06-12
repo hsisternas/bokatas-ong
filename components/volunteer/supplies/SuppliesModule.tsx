@@ -59,8 +59,6 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
   const [globalWeekStates, setGlobalWeekStates] = useState<Record<string, RouteSupplyWeek>>({});
   const summaryPrintRef = useRef<HTMLDivElement | null>(null);
   const shoppingPrintRef = useRef<HTMLDivElement | null>(null);
-  const [previewTitle, setPreviewTitle] = useState<string | null>(null);
-  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [rules, setRules] = useState({
     breadSandwichesPerBar: 3,
     breadBarsPerPack: 2,
@@ -136,9 +134,36 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
     final: globalWeekStates[id]?.final || DEFAULT_ROUTES_CONFIG[id].baseWeekly,
   }));
 
-  const getExportActionLabel = () => {
-    return t('fullscreenPreview');
-  };
+  const getExportActionLabel = () => t('print');
+
+  const buildPrintableHtml = (title: string, contentHtml: string) => `
+    <!doctype html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>${title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 16px; color: #111827; }
+          h1 { font-size: 20px; margin: 0 0 12px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+          th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; vertical-align: top; }
+          th { background: #f3f4f6; text-align: left; }
+          button { display: none !important; }
+          input { border: none; }
+        </style>
+      </head>
+      <body>
+        <h1>${title}</h1>
+        <div>${contentHtml}</div>
+        <script>
+          window.addEventListener('load', () => {
+            setTimeout(() => window.print(), 250);
+          });
+        </script>
+      </body>
+    </html>
+  `;
 
   const printSection = (title: string, ref: React.RefObject<HTMLDivElement | null>) => {
     const content = ref.current;
@@ -146,14 +171,13 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
       window.print();
       return;
     }
+    const printableHtml = buildPrintableHtml(title, content.innerHTML);
 
-    setPreviewTitle(title);
-    setPreviewHtml(content.innerHTML);
-  };
-
-  const handlePreviewPrint = () => {
-    if (!previewTitle || !previewHtml) {
-      window.print();
+    const popup = window.open('', '_blank', 'noopener,noreferrer');
+    if (popup) {
+      popup.document.open();
+      popup.document.write(printableHtml);
+      popup.document.close();
       return;
     }
 
@@ -176,29 +200,7 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
     }
 
     frameDoc.open();
-    frameDoc.write(`
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-          <title>${title}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 16px; color: #111827; }
-            h1 { font-size: 20px; margin: 0 0 12px; }
-            table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-            th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; vertical-align: top; }
-            th { background: #f3f4f6; text-align: left; }
-            button { display: none !important; }
-            input { border: none; }
-          </style>
-        </head>
-        <body>
-          <h1>${title}</h1>
-          <div>${content.innerHTML}</div>
-        </body>
-      </html>
-    `);
+    frameDoc.write(printableHtml);
     frameDoc.close();
 
     const cleanup = () => {
@@ -215,11 +217,6 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
       // Fallback cleanup for browsers that do not fire onafterprint reliably.
       setTimeout(cleanup, 60000);
     }, 200);
-  };
-
-  const closePreview = () => {
-    setPreviewTitle(null);
-    setPreviewHtml(null);
   };
 
   const renderMyRoute = () => {
@@ -464,38 +461,6 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
       {!isLoading && activeTab === 'my-route' && renderMyRoute()}
       {!isLoading && activeTab === 'global-summary' && renderSummary()}
       {!isLoading && activeTab === 'shopping-list' && renderShoppingList()}
-
-      {previewTitle && previewHtml && (
-        <div className="fixed inset-0 z-40 bg-white dark:bg-gray-900">
-          <div className="safe-top safe-bottom flex h-full flex-col">
-            <div className="flex items-center justify-between border-b border-gray-200 px-4 py-3 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-text-main">{previewTitle}</h3>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handlePreviewPrint}
-                  type="button"
-                  className="rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white"
-                >
-                  {t('print')}
-                </button>
-                <button
-                  onClick={closePreview}
-                  type="button"
-                  className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold text-text-main dark:border-gray-600"
-                >
-                  {t('close')}
-                </button>
-              </div>
-            </div>
-            <div className="overflow-auto p-4">
-              <div
-                className="min-h-full rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
-                dangerouslySetInnerHTML={{ __html: previewHtml }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
