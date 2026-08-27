@@ -1,7 +1,7 @@
 {
   "projects": {
-    "default": "bokatas-ong",
-    "bokatas": "bokatas-ong"
+    "default": "bokatas",
+    "bokatas": "bokatas"
   },
   "targets": {},
   "etags": {}

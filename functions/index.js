@@ -4,7 +4,7 @@ import { onRequest } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
-const model = 'gemini-2.5-flash';
+const model = 'gemini-3.6-flash';
 
 const systemInstructions = {
   es: `Eres un asistente compasivo y servicial para personas que se encuentran en situacion de calle o vulnerabilidad.
