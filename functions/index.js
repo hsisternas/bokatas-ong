@@ -1,10 +1,141 @@
 import { GoogleGenAI } from '@google/genai';
+import { getApps, initializeApp } from 'firebase-admin/app';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
-import { onRequest } from 'firebase-functions/v2/https';
+import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
 
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const model = 'gemini-3.6-flash';
+const db = getApps().length ? getFirestore() : (initializeApp(), getFirestore());
+const CATEGORY_IDS = new Set(['primeros-pasos', 'albergues', 'comida', 'higiene', 'salud', 'ropa', 'empleo', 'juridico', 'clases', 'mujer', 'orientacion', 'calle', 'otros']);
+const VOLUNTEER_EMAIL = /^ruta-([1-9])@voluntarios\.bokatas\.local$/;
+const MAX_TEXT = 4000;
+
+const requireAuth = (request) => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'Authentication is required.');
+  return request.auth;
+};
+
+const requireVolunteer = (request) => {
+  const auth = requireAuth(request);
+  if (!VOLUNTEER_EMAIL.test(auth.token.email || '')) {
+    throw new HttpsError('permission-denied', 'Volunteer access is required.');
+  }
+  return auth;
+};
+
+const cleanText = (value, { required = false, max = MAX_TEXT } = {}) => {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (required && !text) throw new HttpsError('invalid-argument', 'A required field is missing.');
+  if (text.length > max) throw new HttpsError('invalid-argument', 'A field is too long.');
+  return text;
+};
+
+const validateResourceInput = (value) => {
+  const categoryId = cleanText(value?.categoryId, { required: true, max: 80 });
+  if (!CATEGORY_IDS.has(categoryId)) throw new HttpsError('invalid-argument', 'Unknown resource category.');
+  const latitude = value?.latitude === null ? null : Number(value?.latitude);
+  const longitude = value?.longitude === null ? null : Number(value?.longitude);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) throw new HttpsError('invalid-argument', 'A valid location is required.');
+  // Valencia and its metropolitan area, intentionally generous around the urban area.
+  if (latitude < 39.28 || latitude > 39.68 || longitude < -0.62 || longitude > -0.12) {
+    throw new HttpsError('invalid-argument', 'The resource must be in Valencia metropolitan area.');
+  }
+  return {
+    categoryId,
+    name: cleanText(value?.name, { required: true, max: 180 }),
+    description: cleanText(value?.description, { required: true }),
+    address: cleanText(value?.address, { required: true, max: 500 }),
+    phone: cleanText(value?.phone, { max: 120 }),
+    email: cleanText(value?.email, { max: 320 }),
+    website: cleanText(value?.website, { max: 500 }),
+    scheduleRaw: cleanText(value?.scheduleRaw, { max: 1000 }),
+    latitude,
+    longitude,
+  };
+};
+
+const addEvent = (transaction, resourceRef, event) => {
+  transaction.set(resourceRef.collection('events').doc(), { ...event, createdAt: new Date().toISOString() });
+};
+
+export const saveContributorResource = onCall({ region: 'europe-west1' }, async (request) => {
+  const auth = requireAuth(request);
+  if (VOLUNTEER_EMAIL.test(auth.token.email || '')) throw new HttpsError('permission-denied', 'Use the volunteer resource workflow.');
+  const input = validateResourceInput(request.data?.resource);
+  const resourceId = cleanText(request.data?.resourceId, { max: 200 });
+  const now = new Date().toISOString();
+  const profileRef = db.collection('userProfiles').doc(auth.uid);
+  const profile = await profileRef.get();
+  const displayName = cleanText(profile.data()?.displayName || auth.token.name || '', { max: 120 });
+
+  return db.runTransaction(async (transaction) => {
+    if (!resourceId) {
+      const resourceRef = db.collection('resources').doc();
+      const record = {
+        ...input, status: 'pending_review', provenance: 'collaborator', ownerUid: auth.uid,
+        ownerDisplayName: displayName || 'Colaborador', createdAt: now, updatedAt: now, submittedAt: now,
+        reviewedAt: null, reviewedBy: null, reviewComment: '', withdrawalRequestedAt: null, archivedAt: null,
+        translations: {}, schemaVersion: 2,
+      };
+      transaction.create(resourceRef, record);
+      addEvent(transaction, resourceRef, { type: 'submitted', actorUid: auth.uid, actorEmail: auth.token.email || '', actorRole: 'collaborator' });
+      return { id: resourceRef.id };
+    }
+    const resourceRef = db.collection('resources').doc(resourceId);
+    const existing = await transaction.get(resourceRef);
+    if (!existing.exists) throw new HttpsError('not-found', 'Resource not found.');
+    const current = existing.data();
+    if (current.ownerUid !== auth.uid || !['pending_review', 'rejected'].includes(current.status)) {
+      throw new HttpsError('permission-denied', 'This resource cannot be edited.');
+    }
+    transaction.update(resourceRef, { ...input, status: 'pending_review', updatedAt: now, submittedAt: now, reviewedAt: null, reviewedBy: null, reviewComment: '' });
+    addEvent(transaction, resourceRef, { type: 'edited', actorUid: auth.uid, actorEmail: auth.token.email || '', actorRole: 'collaborator' });
+    addEvent(transaction, resourceRef, { type: 'submitted', actorUid: auth.uid, actorEmail: auth.token.email || '', actorRole: 'collaborator' });
+    return { id: resourceId };
+  });
+});
+
+export const requestResourceWithdrawal = onCall({ region: 'europe-west1' }, async (request) => {
+  const auth = requireAuth(request);
+  const resourceId = cleanText(request.data?.resourceId, { required: true, max: 200 });
+  const resourceRef = db.collection('resources').doc(resourceId);
+  const now = new Date().toISOString();
+  await db.runTransaction(async (transaction) => {
+    const resource = await transaction.get(resourceRef);
+    if (!resource.exists || resource.data().ownerUid !== auth.uid || resource.data().status !== 'published') throw new HttpsError('permission-denied', 'This resource cannot be withdrawn.');
+    transaction.update(resourceRef, { status: 'withdrawal_requested', withdrawalRequestedAt: now, updatedAt: now });
+    addEvent(transaction, resourceRef, { type: 'withdrawal_requested', actorUid: auth.uid, actorEmail: auth.token.email || '', actorRole: 'collaborator' });
+  });
+  return { id: resourceId };
+});
+
+export const reviewResource = onCall({ region: 'europe-west1' }, async (request) => {
+  const auth = requireVolunteer(request);
+  const resourceId = cleanText(request.data?.resourceId, { required: true, max: 200 });
+  const action = cleanText(request.data?.action, { required: true, max: 40 });
+  const comment = cleanText(request.data?.comment, { max: 1200 });
+  if (!['approve', 'reject', 'archive'].includes(action)) throw new HttpsError('invalid-argument', 'Unknown review action.');
+  const resourceRef = db.collection('resources').doc(resourceId);
+  const now = new Date().toISOString();
+  await db.runTransaction(async (transaction) => {
+    const resource = await transaction.get(resourceRef);
+    if (!resource.exists) throw new HttpsError('not-found', 'Resource not found.');
+    const current = resource.data();
+    const nextStatus = action === 'approve' ? 'published' : action === 'reject' ? 'rejected' : 'archived';
+    if ((action === 'archive' && current.status !== 'withdrawal_requested') || (action !== 'archive' && current.status !== 'pending_review')) {
+      throw new HttpsError('failed-precondition', 'This resource is no longer awaiting this review.');
+    }
+    transaction.update(resourceRef, {
+      status: nextStatus, updatedAt: now, reviewedAt: now, reviewedBy: auth.uid, reviewComment: comment,
+      ...(nextStatus === 'published' ? { publishedAt: now } : {}),
+      ...(nextStatus === 'archived' ? { archivedAt: now } : {}),
+    });
+    addEvent(transaction, resourceRef, { type: action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'archived', actorUid: auth.uid, actorEmail: auth.token.email || '', actorRole: 'volunteer', comment });
+  });
+  return { id: resourceId };
+});
 
 const systemInstructions = {
   es: `Eres un asistente compasivo y servicial para personas que se encuentran en situacion de calle o vulnerabilidad.

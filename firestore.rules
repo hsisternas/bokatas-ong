@@ -1,35 +1,58 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isSignedIn() {
+    function signedIn() {
       return request.auth != null && request.auth.token.email is string;
     }
 
-    function isRouteUser() {
-      return isSignedIn() && request.auth.token.email.matches('^ruta-([1-9])@voluntarios\\.bokatas\\.local$');
+    function volunteer() {
+      return signedIn() && request.auth.token.email.matches('^ruta-([1-9])@voluntarios\\.bokatas\\.local$');
     }
 
-    function canAccessRoute(routeId) {
-      return isRouteUser() && request.auth.token.email.matches('^' + routeId + '@voluntarios\\.bokatas\\.local$');
+    function ownsProfile(userId) {
+      return signedIn() && request.auth.uid == userId;
+    }
+
+    function ownsResource() {
+      return signedIn() && resource.data.ownerUid == request.auth.uid;
+    }
+
+    match /userProfiles/{userId} {
+      allow get: if ownsProfile(userId);
+      allow create: if ownsProfile(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == 'collaborator'
+        && request.resource.data.keys().hasOnly(['uid', 'role', 'displayName', 'email', 'createdAt', 'updatedAt']);
+      allow update: if ownsProfile(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == 'collaborator'
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.keys().hasOnly(['uid', 'role', 'displayName', 'email', 'createdAt', 'updatedAt']);
+      allow delete: if false;
     }
 
     match /resources/{resourceId} {
-      allow read: if true;
-      allow write: if isRouteUser();
+      allow get, list: if resource.data.status == 'published' || ownsResource() || volunteer();
+      allow create, update, delete: if false;
+
+      match /events/{eventId} {
+        allow get, list: if ownsResource() || volunteer();
+        allow create, update, delete: if false;
+      }
     }
 
-    match /resourceOverrides/{resourceId} {
+    match /catalogConfig/{configId} {
       allow read: if true;
-      allow write: if isRouteUser();
+      allow write: if false;
     }
 
     match /routesConfig/{routeId} {
-      allow read, write: if canAccessRoute(routeId);
+      allow read, write: if volunteer() && request.auth.token.email.matches('^' + routeId + '@voluntarios\\.bokatas\\.local$');
     }
 
     match /routeSupplyWeeks/{docId} {
-      allow read: if isRouteUser();
-      allow write: if isRouteUser()
+      allow read: if volunteer();
+      allow write: if volunteer()
         && request.resource.data.routeId is string
         && request.resource.data.weekKey is string
         && request.resource.data.routeId.matches('^ruta-([1-9])$')
@@ -38,7 +61,12 @@ service cloud.firestore {
     }
 
     match /supplyRules/{ruleId} {
-      allow read: if isRouteUser();
+      allow read: if volunteer();
+      allow write: if false;
+    }
+
+    match /resourceOverrides/{resourceId} {
+      allow read: if volunteer();
       allow write: if false;
     }
   }

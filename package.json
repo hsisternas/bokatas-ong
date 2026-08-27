@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "emulators": "firebase emulators:start",
     "test:auth-race": "node scripts/validate-auth-race.mjs",
     "test:map-xss": "node scripts/validate-map-popup-xss.mjs",
     "test:list-map": "node scripts/validate-list-map-toggle.mjs",
