@@ -11,6 +11,7 @@
     "emulators": "firebase emulators:start",
     "migrate:legacy:dry-run": "node functions/scripts/migrateLegacyResources.mjs --dry-run",
     "migrate:legacy:apply": "node functions/scripts/migrateLegacyResources.mjs --apply",
+    "test:contributor-workflow": "node functions/scripts/verifyContributorWorkflow.mjs",
     "test:auth-race": "node scripts/validate-auth-race.mjs",
     "test:map-xss": "node scripts/validate-map-popup-xss.mjs",
     "test:list-map": "node scripts/validate-list-map-toggle.mjs",

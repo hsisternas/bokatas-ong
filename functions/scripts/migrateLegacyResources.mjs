@@ -12,7 +12,7 @@ const rollbackRunId = mode === '--rollback' ? process.argv[3] : '';
 const root = resolve(dirname(new URL(import.meta.url).pathname), '../..');
 const reportDir = resolve(root, 'migration-reports');
 const now = new Date().toISOString();
-const db = getApps().length ? getFirestore() : (initializeApp(), getFirestore());
+const db = getApps().length ? getFirestore() : (initializeApp({ projectId: process.env.GCLOUD_PROJECT || 'bokatas' }), getFirestore());
 
 const readLegacyResources = async () => {
   const source = await readFile(resolve(root, 'services/resourceService.ts'), 'utf8');

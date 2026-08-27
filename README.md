@@ -47,14 +47,36 @@ Aplicacion React para consultar recursos sociales con despliegue en Firebase.
 
 El dominio de los usuarios voluntarios queda fijado en `voluntarios.bokatas.local` para que el frontend coincida con las reglas de Firestore. Si necesitas otro dominio, hay que cambiar cliente y reglas a la vez.
 
+## Recursos y colaboradores externos
+
+Los recursos usan una colección canónica `resources`. Los voluntarios siguen entrando con las cuentas `ruta-N@voluntarios.bokatas.local`; los colaboradores externos se registran con Google o correo/contraseña.
+
+- Un colaborador solo crea, consulta y edita sus recursos; se envían como `pending_review`.
+- Una ruta puede aprobar, rechazar o tramitar una retirada desde **Recursos por revisar**.
+- Solo `published` se expone al directorio público. Las escrituras directas a recursos están bloqueadas por Rules y pasan por Cloud Functions.
+- Cada transición deja un evento en `resources/{id}/events`.
+
+Estados: `pending_review`, `published`, `rejected`, `withdrawal_requested` y `archived`.
+
+## Migración del directorio histórico
+
+El catálogo histórico permanece en el código como respaldo. La lectura pública cambia a Firestore cuando `catalogConfig/resources.legacyMigrationComplete` es verdadero.
+
+1. Ejecuta `npm run migrate:legacy:dry-run` y revisa `migration-reports/`.
+2. Configura credenciales de aplicación con acceso al proyecto. Por ejemplo, `gcloud auth application-default login`; si se usa una credencial de Firebase local, exporta también `GOOGLE_CLOUD_QUOTA_PROJECT=bokatas`.
+3. Ejecuta `npm run migrate:legacy:apply`.
+4. Repite el comando: debe indicar que la ejecución ya estaba aplicada, sin modificar datos.
+
+La ejecución queda registrada en `migrationRuns/{migrationRunId}` y conserva el contenido previo de `resources` en `resourcesBefore`. Para revertir: `node functions/scripts/migrateLegacyResources.mjs --rollback <migrationRunId>` con las mismas credenciales. No se elimina la fuente histórica.
+
+Para un smoke real del flujo completo, exporta `FIREBASE_WEB_API_KEY` y `TEST_VOLUNTEER_PASSWORD`, después ejecuta `npm run test:contributor-workflow`. Crea datos efímeros y los elimina incluso si falla.
+
 ## Recursos creados por voluntarios (Firestore)
 
 1. Crea Firestore Database en modo Native (si aun no existe).
 2. Despliega reglas e indices:
    - `firebase deploy --only firestore:rules,firestore:indexes`
-3. Las reglas permiten:
-   - Lectura publica de recursos.
-   - Escritura solo a usuarios autenticados `ruta-1` ... `ruta-9`.
+3. Las reglas permiten lectura pública exclusivamente de recursos publicados, lectura privada de recursos propios y lectura de moderación a voluntarios. Las mutaciones de recursos se validan en Cloud Functions.
 
 ## Desarrollo local
 
