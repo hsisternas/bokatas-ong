@@ -13,12 +13,12 @@ body,
 
 html,
 body {
-  background-color: #2aa7df;
+  background-color: #f8fafc;
 }
 
 html.dark,
 html.dark body {
-  background-color: #2aa7df;
+  background-color: #0b1220;
 }
 
 #root {
@@ -80,3 +80,22 @@ html.dark .shadow-xl {
 html.dark .hover\:bg-gray-100:hover {
   background-color: #374151 !important;
 }
+
+.form-label { display: block; color: #334155; font-size: .875rem; font-weight: 700; }
+.form-control { display: block; width: 100%; margin-top: .35rem; border: 1px solid #cbd5e1; border-radius: .75rem; background: white; color: #1e293b; padding: .65rem .8rem; font: inherit; }
+.form-control:focus { outline: 2px solid #2aa7df; outline-offset: 1px; border-color: #2aa7df; }
+.button-primary, .button-secondary, .button-danger, .button-google, .icon-button, .link-button { transition: background-color .18s ease, color .18s ease, border-color .18s ease; }
+.button-primary { border: 0; border-radius: .75rem; background: #2aa7df; color: white; padding: .65rem 1rem; font-weight: 800; }
+.button-primary:hover { background: #1c92d2; }.button-primary:disabled { opacity: .6; cursor: wait; }
+.button-secondary { border: 1px solid #bae6fd; border-radius: .75rem; background: white; color: #176c9b; padding: .6rem .9rem; font-weight: 700; }.button-secondary:hover { background: #e6f4fb; }
+.button-danger { border: 1px solid #fecaca; border-radius: .75rem; background: white; color: #b91c1c; padding: .6rem .9rem; font-weight: 700; }.button-danger:hover { background: #fef2f2; }
+.button-google { border: 1px solid #cbd5e1; border-radius: .75rem; background: white; color: #1e293b; padding: .65rem 1rem; font-weight: 800; }.button-google:hover { background: #f8fafc; }.button-google span { color: #4285f4; font-weight: 900; }
+.icon-button { border: 0; border-radius: 999px; background: transparent; color: #176c9b; padding: .45rem; line-height: 1; }.icon-button:hover { background: #e6f4fb; }
+.link-button { border: 0; background: transparent; color: #176c9b; padding: 0; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.panel { border: 1px solid #e2e8f0; border-radius: 1rem; background: white; padding: 1rem; box-shadow: 0 8px 24px rgb(15 23 42 / 0.05); }
+.eyebrow { color: #176c9b; font-size: .75rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.brand-mark { display: inline-grid; height: 1.75rem; width: 1.75rem; place-items: center; border-radius: .6rem; background: #e6f4fb; color: #176c9b; font-weight: 900; }
+.contribute-callout { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid #bae6fd; border-radius: 1rem; background: linear-gradient(120deg, #fff 0%, #f0f9ff 100%); padding: 1.25rem; }
+.status-badge { display: inline-flex; width: fit-content; border-radius: 999px; padding: .2rem .55rem; font-size: .75rem; font-weight: 800; }.status-pending_review, .status-withdrawal_requested { background: #fef3c7; color: #92400e; }.status-published { background: #dcfce7; color: #166534; }.status-rejected { background: #fee2e2; color: #991b1b; }.status-archived { background: #e2e8f0; color: #475569; }
+html.dark .panel, html.dark .form-control, html.dark .button-secondary, html.dark .button-danger, html.dark .button-google { background: #111827; color: #f3f4f6; border-color: #374151; }
+html.dark .contribute-callout { background: #111827; border-color: #155e75; }.form-control:disabled { background: #f1f5f9; color: #64748b; }

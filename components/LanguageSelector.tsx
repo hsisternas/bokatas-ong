@@ -34,7 +34,7 @@ const LanguageSelector: React.FC = () => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="text-white hover:bg-black/10 rounded-full p-2 transition-colors"
+        className="icon-button"
         aria-label="Change language"
       >
         <span className="material-symbols-outlined text-2xl opacity-80 group-hover:opacity-100 transition-opacity">language</span>

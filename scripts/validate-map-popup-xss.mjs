@@ -123,6 +123,12 @@ const installGoogleMapsStub = async (page) => {
 };
 
 const installModuleMocks = async (page) => {
+  await page.route('**/services/resourceService.ts*', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/javascript', body: `
+      export const getCategories = () => [{ id: 'primeros-pasos', name: { es: 'Primeros Pasos', en: 'First Steps', it: 'Primi Passi', ar: 'الخطوات الأولى', fr: 'Premiers Pas' }, description: { es: '', en: '', it: '', ar: '', fr: '' }, icon: () => null }];
+      export const getResources = () => [{ id: 'custom-xss-check', categoryId: 'primeros-pasos', name: { es: '${RESOURCE_NAME}', en: '${RESOURCE_NAME}', it: '${RESOURCE_NAME}', ar: '${RESOURCE_NAME}', fr: '${RESOURCE_NAME}' }, description: { es: 'Popup de prueba', en: 'Popup test', it: 'Test popup', ar: 'اختبار النافذة', fr: 'Test popup' }, address: ${JSON.stringify(MALICIOUS_ADDRESS)}, phone: '', email: '', hours: '', coordinates: { lat: 39.47, lng: -0.37 }, updated: '12.06.26' }];
+    ` });
+  });
   await page.route('**/services/googleMapsLoader.ts*', async (route) => {
     await route.fulfill({
       status: 200,

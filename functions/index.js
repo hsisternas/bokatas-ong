@@ -1,6 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { getApps, initializeApp } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
@@ -109,6 +109,35 @@ export const requestResourceWithdrawal = onCall({ region: 'europe-west1' }, asyn
     addEvent(transaction, resourceRef, { type: 'withdrawal_requested', actorUid: auth.uid, actorEmail: auth.token.email || '', actorRole: 'collaborator' });
   });
   return { id: resourceId };
+});
+
+// This keeps the established volunteer experience while putting additions and
+// editions behind the same validation and server-side authorization boundary.
+export const saveVolunteerResource = onCall({ region: 'europe-west1' }, async (request) => {
+  const auth = requireVolunteer(request);
+  const input = validateResourceInput(request.data?.resource);
+  const resourceId = cleanText(request.data?.resourceId, { max: 200 });
+  const now = new Date().toISOString();
+  return db.runTransaction(async (transaction) => {
+    if (!resourceId) {
+      const resourceRef = db.collection('resources').doc();
+      transaction.create(resourceRef, {
+        ...input, status: 'published', provenance: 'volunteer', ownerUid: null,
+        ownerDisplayName: auth.token.email || 'Voluntario Bokatas', createdAt: now, updatedAt: now,
+        submittedAt: now, publishedAt: now, reviewedAt: now, reviewedBy: auth.uid, reviewComment: '',
+        withdrawalRequestedAt: null, archivedAt: null, translations: {}, schemaVersion: 2,
+      });
+      addEvent(transaction, resourceRef, { type: 'created_by_volunteer', actorUid: auth.uid, actorEmail: auth.token.email || '', actorRole: 'volunteer' });
+      return { id: resourceRef.id };
+    }
+    const resourceRef = db.collection('resources').doc(resourceId);
+    const existing = await transaction.get(resourceRef);
+    if (!existing.exists()) throw new HttpsError('not-found', 'Resource not found.');
+    if (existing.data().status !== 'published') throw new HttpsError('failed-precondition', 'Only published resources can be edited here.');
+    transaction.update(resourceRef, { ...input, updatedAt: now });
+    addEvent(transaction, resourceRef, { type: 'edited_by_volunteer', actorUid: auth.uid, actorEmail: auth.token.email || '', actorRole: 'volunteer' });
+    return { id: resourceId };
+  });
 });
 
 export const reviewResource = onCall({ region: 'europe-west1' }, async (request) => {

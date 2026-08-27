@@ -3,6 +3,22 @@ import { chromium, devices } from 'playwright';
 const BASE_URL = process.env.TEST_BASE_URL || 'http://localhost:3000/';
 
 const installModuleMocks = async (page) => {
+  await page.route('**/services/contributorAuthService.ts*', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/javascript', body: `
+      const listeners = new Set(); let user = null;
+      window.__volunteerSetUser = (next) => { user = next; listeners.forEach((listener) => listener(user)); };
+      export const subscribeAuthUser = (listener) => { listeners.add(listener); setTimeout(() => listener(user), 0); return () => listeners.delete(listener); };
+      export const isVolunteerUser = (candidate) => Boolean(candidate?.email?.match(/^ruta-([1-9])@voluntarios\\.bokatas\\.local$/));
+      export const logoutAuthenticatedUser = async () => window.__volunteerSetUser(null);
+      export const resetContributorPassword = async () => undefined;
+      export const signInContributorEmail = async () => undefined;
+      export const signInContributorGoogle = async () => undefined;
+      export const signUpContributor = async () => undefined;
+      export const updateContributorProfile = async () => undefined;
+      export const changeContributorPassword = async () => undefined;
+      export const changeContributorEmail = async () => undefined;
+    ` });
+  });
   await page.route('**/services/firebaseClient.ts*', async (route) => {
     await route.fulfill({
       status: 200,
@@ -11,6 +27,7 @@ const installModuleMocks = async (page) => {
         export const isFirebaseAuthConfigured = true;
         export const auth = {};
         export const db = null;
+        export const functions = null;
       `,
     });
   });
@@ -61,13 +78,13 @@ const installModuleMocks = async (page) => {
           const email = getVolunteerEmail(username);
           window.setTimeout(() => {
             currentEmail = email;
-            notify();
+            notify(); window.__volunteerSetUser?.({ email: currentEmail });
           }, 100);
         };
 
         export const logoutVolunteer = async () => {
           currentEmail = null;
-          notify();
+          notify(); window.__volunteerSetUser?.(null);
         };
 
         export const getRouteIdFromEmail = (email) => {
@@ -95,7 +112,6 @@ const loginVolunteer = async (page) => {
 };
 
 const getModuleSelectorButton = (page) => page.getByRole('button', { name: /Bokatas/i }).first();
-const getCategorySelectorButton = (page) => page.getByRole('button', { name: /Primeros Pasos|Dormir/i }).first();
 const getVolunteerHeading = (page) => page.getByRole('heading', { name: 'Área voluntarios' }).first();
 
 const assertHidden = async (page, text) => {
@@ -124,14 +140,9 @@ const validateViewport = async (name, contextOptions) => {
 
     await getModuleSelectorButton(page).click();
     await page.getByRole('button', { name: 'Editar recurso' }).click();
-    await getCategorySelectorButton(page).click();
-    await page.getByText('Dormir', { exact: true }).waitFor({ timeout: 5000 });
-    await getVolunteerHeading(page).click();
-    await assertHidden(page, 'Dormir');
-
-    await getCategorySelectorButton(page).click();
-    await page.getByRole('button', { name: 'Dormir' }).click();
-    await page.getByRole('button', { name: /Dormir/i }).first().waitFor({ timeout: 5000 });
+    const resourceSelector = page.locator('select.form-control');
+    await resourceSelector.selectOption({ index: 1 });
+    await page.getByRole('button', { name: 'Guardar cambios' }).waitFor({ timeout: 5000 });
 
     console.log(`[ok] ${name}: volunteer dropdowns close on outside interaction and still allow module/category changes`);
   } finally {

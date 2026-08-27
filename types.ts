@@ -91,4 +91,5 @@ export type View =
   | { type: 'categories' }
   | { type: 'list'; category: Category }
   | { type: 'detail'; resource: Resource }
-  | { type: 'volunteer' };
+  | { type: 'volunteer' }
+  | { type: 'contributor' };

@@ -5,12 +5,14 @@ import { useTranslation } from '../contexts/LanguageContext';
 interface CategoryGridProps {
   categories: Category[];
   onSelectCategory: (category: Category) => void;
+  onContribute?: () => void;
 }
 
-const CategoryGrid: React.FC<CategoryGridProps> = ({ categories, onSelectCategory }) => {
+const CategoryGrid: React.FC<CategoryGridProps> = ({ categories, onSelectCategory, onContribute }) => {
   const { locale } = useTranslation();
   return (
-    <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
+    <div>
+      <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
       {categories.map((category, index) => (
         <div
           key={category.id}
@@ -27,6 +29,8 @@ const CategoryGrid: React.FC<CategoryGridProps> = ({ categories, onSelectCategor
           <p className="text-text-light text-center text-xs mt-1 hidden sm:block">{category.description[locale]}</p>
         </div>
       ))}
+      </div>
+      {onContribute && <section className="contribute-callout mt-6"><div><p className="eyebrow">Colabora</p><h2 className="mt-1 text-xl font-bold text-text-main">¿Conoces un recurso que pueda ayudar?</h2><p className="mt-1 text-sm text-text-light">Compártelo con Bokatas para que podamos revisarlo.</p></div><button className="button-primary" onClick={onContribute}>Añade un recurso</button></section>}
     </div>
   );
 };

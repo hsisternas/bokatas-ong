@@ -4,6 +4,8 @@ import { useTranslation } from '../../contexts/LanguageContext';
 import AddResourceModule from './AddResourceModule';
 import EditResourceModule from './EditResourceModule';
 import SuppliesModule from './supplies/SuppliesModule';
+import ReviewResourcesModule from './ReviewResourcesModule';
+import { getReviewResourceRecords } from '../../services/canonicalResourceService';
 
 interface VolunteerModulesProps {
   routeId: string;
@@ -14,7 +16,7 @@ interface VolunteerModulesProps {
   onResourceUpdated: (resource: Resource) => void;
 }
 
-type VolunteerModuleId = 'supplies' | 'add-resource' | 'edit-resource';
+type VolunteerModuleId = 'supplies' | 'review-resources' | 'add-resource' | 'edit-resource';
 
 const VolunteerModules: React.FC<VolunteerModulesProps> = ({
   routeId,
@@ -27,10 +29,12 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
   const { t } = useTranslation();
   const [activeModule, setActiveModule] = useState<VolunteerModuleId>('supplies');
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
+  const [reviewCount, setReviewCount] = useState(0);
   const selectorRef = useRef<HTMLDivElement | null>(null);
 
   const moduleOptions: { id: VolunteerModuleId; label: string; icon: string }[] = [
     { id: 'supplies', label: t('volunteerModuleSupplies'), icon: 'lunch_dining' },
+    { id: 'review-resources', label: 'Recursos por revisar', icon: 'fact_check' },
     { id: 'add-resource', label: t('volunteerModuleAddResource'), icon: 'add_location_alt' },
     { id: 'edit-resource', label: t('volunteerModuleEditResource'), icon: 'edit_location_alt' },
   ];
@@ -49,6 +53,10 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
     document.addEventListener('pointerdown', handlePointerDownOutside);
     return () => document.removeEventListener('pointerdown', handlePointerDownOutside);
   }, []);
+
+  useEffect(() => {
+    getReviewResourceRecords().then((items) => setReviewCount(items.length)).catch(() => setReviewCount(0));
+  }, [activeModule]);
 
   return (
     <div>
@@ -83,7 +91,7 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
               }`}
             >
               <span className="material-symbols-outlined text-base">{option.icon}</span>
-              <span>{option.label}</span>
+              <span>{option.label}</span>{option.id === 'review-resources' && reviewCount > 0 && <span className="ml-auto rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-white">{reviewCount}</span>}
             </button>
           ))}
         </div>
@@ -93,6 +101,8 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
         {activeModule === 'supplies' && (
           <SuppliesModule routeId={routeId} userEmail={userEmail} />
         )}
+
+        {activeModule === 'review-resources' && <ReviewResourcesModule />}
 
         {activeModule === 'add-resource' && (
           <AddResourceModule categories={categories} onResourceAdded={onResourceAdded} />

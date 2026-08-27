@@ -13,18 +13,18 @@ const Header: React.FC<HeaderProps> = ({ title, showBackButton, onBack, children
   const isHome = title === t('appName');
 
   return (
-    <header className="safe-top bg-primary text-white shadow-md sticky top-0 z-10 rounded-b-2xl">
-      <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+    <header className="safe-top sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 text-text-main backdrop-blur">
+      <div className="container mx-auto flex min-h-14 items-center justify-between gap-3 px-4 py-2 sm:px-6">
         <div className="flex items-center min-w-0">
           {showBackButton && (
-            <button onClick={onBack} className="me-2 md:me-4 hover:bg-black/10 rounded-full p-2 flex-shrink-0 transition-colors" aria-label="Go back">
+            <button onClick={onBack} className="icon-button me-2 flex-shrink-0" aria-label="Volver">
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
           )}
           <div className="flex flex-col">
-            <h1 className="text-xl font-bold truncate">{title}</h1>
+            <div className="flex items-center gap-2"><span className="brand-mark" aria-hidden="true">B</span><h1 className="text-lg font-extrabold tracking-tight truncate">{isHome ? 'Bokatas' : title}</h1></div>
             {isHome && (
-              <p className="text-sm font-light text-white/80 truncate">{t('headerSubtitle')}</p>
+              <p className="text-xs text-text-light truncate">{t('headerSubtitle')}</p>
             )}
           </div>
         </div>

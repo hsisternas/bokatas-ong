@@ -6,6 +6,22 @@ const TARGET_EMAIL = `${TARGET_USERNAME}@voluntarios.bokatas.local`;
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const installModuleMocks = async (page) => {
+  await page.route('**/services/contributorAuthService.ts*', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/javascript', body: `
+      const listeners = new Set(); let user = null;
+      window.__authRaceSetUser = (next) => { user = next; listeners.forEach((listener) => listener(user)); };
+      export const subscribeAuthUser = (listener) => { listeners.add(listener); setTimeout(() => listener(user), 0); return () => listeners.delete(listener); };
+      export const isVolunteerUser = (candidate) => Boolean(candidate?.email?.match(/^ruta-([1-9])@voluntarios\\.bokatas\\.local$/));
+      export const logoutAuthenticatedUser = async () => window.__authRaceSetUser(null);
+      export const resetContributorPassword = async () => undefined;
+      export const signInContributorEmail = async () => undefined;
+      export const signInContributorGoogle = async () => undefined;
+      export const signUpContributor = async () => undefined;
+      export const updateContributorProfile = async () => undefined;
+      export const changeContributorPassword = async () => undefined;
+      export const changeContributorEmail = async () => undefined;
+    ` });
+  });
   await page.route('**/services/firebaseClient.ts*', async (route) => {
     await route.fulfill({
       status: 200,
@@ -14,6 +30,7 @@ const installModuleMocks = async (page) => {
         export const isFirebaseAuthConfigured = true;
         export const auth = {};
         export const db = null;
+        export const functions = null;
       `,
     });
   });
@@ -64,13 +81,13 @@ const installModuleMocks = async (page) => {
           const email = getVolunteerEmail(username);
           window.setTimeout(() => {
             currentEmail = email;
-            notify();
+            notify(); window.__authRaceSetUser?.({ email: currentEmail });
           }, 250);
         };
 
         export const logoutVolunteer = async () => {
           currentEmail = null;
-          notify();
+          notify(); window.__authRaceSetUser?.(null);
         };
 
         export const getRouteIdFromEmail = (email) => {

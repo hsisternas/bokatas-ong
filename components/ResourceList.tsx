@@ -26,6 +26,7 @@ interface ResourceListProps {
   resources: Resource[];
   onSelectResource: (resource: Resource) => void;
   userLocation: Geolocation;
+  onContribute?: () => void;
 }
 
 const ResourceCard: React.FC<{ resource: Resource, distance: number | null, onSelect: () => void }> = ({ resource, distance, onSelect }) => {
@@ -47,7 +48,7 @@ const ResourceCard: React.FC<{ resource: Resource, distance: number | null, onSe
   );
 };
 
-const ResourceList: React.FC<ResourceListProps> = ({ category, resources, onSelectResource, userLocation }) => {
+const ResourceList: React.FC<ResourceListProps> = ({ category, resources, onSelectResource, userLocation, onContribute }) => {
   const { t } = useTranslation();
   
   const filteredAndSortedResources = useMemo(() => {
@@ -92,6 +93,7 @@ const ResourceList: React.FC<ResourceListProps> = ({ category, resources, onSele
 
   return (
     <div className="flex flex-col h-full">
+      <div className="mb-3 flex justify-end">{onContribute && <button className="button-secondary text-sm" onClick={onContribute}>+ Añade un recurso</button>}</div>
       {resourcesWithCoords.length > 0 && (
         <div className="mb-4 rounded-lg overflow-hidden shadow-md">
           <Map 

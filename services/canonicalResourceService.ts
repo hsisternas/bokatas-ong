@@ -28,6 +28,12 @@ export const getPublishedResourceRecords = async (): Promise<ResourceRecord[]> =
   return result.docs.map((item) => mapRecord(item.id, item.data()));
 };
 
+export const isLegacyCatalogMigrated = async (): Promise<boolean> => {
+  if (!db || !isFirebaseAuthConfigured) return false;
+  const result = await getDoc(doc(db, 'catalogConfig', 'resources'));
+  return result.exists() && result.data().legacyMigrationComplete === true;
+};
+
 export const getOwnedResourceRecords = async (uid: string): Promise<ResourceRecord[]> => {
   requireFirebase();
   const result = await getDocs(query(collection(db!, 'resources'), where('ownerUid', '==', uid), orderBy('updatedAt', 'desc')));
@@ -49,6 +55,12 @@ export const getResourceRecord = async (resourceId: string): Promise<ResourceRec
 export const saveContributorResource = async (resource: ResourceInput, resourceId?: string): Promise<string> => {
   requireFirebase();
   const result = await httpsCallable(functions!, 'saveContributorResource')({ resource, resourceId: resourceId || '' });
+  return (result.data as { id: string }).id;
+};
+
+export const saveVolunteerResource = async (resource: ResourceInput, resourceId?: string): Promise<string> => {
+  requireFirebase();
+  const result = await httpsCallable(functions!, 'saveVolunteerResource')({ resource, resourceId: resourceId || '' });
   return (result.data as { id: string }).id;
 };
 

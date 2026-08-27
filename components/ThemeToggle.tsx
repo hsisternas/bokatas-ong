@@ -13,7 +13,7 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ isDark, onToggle }) => {
   return (
     <button
       onClick={onToggle}
-      className="text-white hover:bg-black/10 rounded-full p-2 transition-colors"
+      className="icon-button"
       aria-label={label}
       title={label}
     >

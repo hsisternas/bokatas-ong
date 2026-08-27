@@ -7,14 +7,19 @@ import ResourceList from './components/ResourceList';
 import ResourceDetail from './components/ResourceDetail';
 import VolunteerArea from './components/VolunteerArea';
 import VolunteerLoginModal from './components/VolunteerLoginModal';
+import ContributorAuthModal from './components/contributor/ContributorAuthModal';
+import ContributorArea from './components/contributor/ContributorArea';
 import Header from './components/Header';
 import LanguageSelector from './components/LanguageSelector';
 import ThemeToggle from './components/ThemeToggle';
 import useGeolocation from './hooks/useGeolocation';
 import { useTranslation } from './contexts/LanguageContext';
 import { isFirebaseAuthConfigured } from './services/firebaseClient';
-import { getRouteIdFromEmail, loginVolunteer, logoutVolunteer, subscribeVolunteerSession } from './services/authService';
-import { getResourceOverrides, getVolunteerResources } from './services/resourceStoreService';
+import { getRouteIdFromEmail, loginVolunteer } from './services/authService';
+import { isLegacyCatalogMigrated, getPublishedResourceRecords } from './services/canonicalResourceService';
+import { isVolunteerUser, logoutAuthenticatedUser, subscribeAuthUser } from './services/contributorAuthService';
+import { toPublicResource } from './domain/resource';
+import type { User } from 'firebase/auth';
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>({ type: 'categories' });
@@ -25,7 +30,8 @@ const App: React.FC = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isAuthResolved, setIsAuthResolved] = useState(!isFirebaseAuthConfigured);
   const [isVolunteerAccessPending, setIsVolunteerAccessPending] = useState(false);
-  const [volunteerEmail, setVolunteerEmail] = useState<string | null>(null);
+  const [isContributorAuthOpen, setIsContributorAuthOpen] = useState(false);
+  const [authUser, setAuthUser] = useState<User | null>(null);
   const isVolunteerAccessPendingRef = useRef(false);
   
   const { location, requestLocation } = useGeolocation();
@@ -42,10 +48,10 @@ const App: React.FC = () => {
     setCategories(baseCategories);
     setResources(baseResources);
 
-    Promise.all([getVolunteerResources(), getResourceOverrides()])
-      .then(([volunteerResources, overrides]) => {
-        const merged = [...baseResources, ...volunteerResources].map((resource) => overrides[resource.id] || resource);
-        setResources(merged);
+    Promise.all([isLegacyCatalogMigrated(), getPublishedResourceRecords()])
+      .then(([migrated, published]) => {
+        const canonical = published.map((resource) => toPublicResource(resource, locale));
+        setResources(migrated ? canonical : [...baseResources, ...canonical]);
       })
       .catch(() => {
         // Keep base resources available even if Firestore fails.
@@ -53,7 +59,7 @@ const App: React.FC = () => {
 
     requestLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locale]);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme');
@@ -82,15 +88,15 @@ const App: React.FC = () => {
   }, [isVolunteerAccessPending]);
 
   useEffect(() => {
-    const unsubscribe = subscribeVolunteerSession((email) => {
+    const unsubscribe = subscribeAuthUser((user) => {
       setIsAuthResolved(true);
-      setVolunteerEmail(email);
-      if (email && isVolunteerAccessPendingRef.current) {
+      setAuthUser(user);
+      if (user && isVolunteerUser(user) && isVolunteerAccessPendingRef.current) {
         setView({ type: 'volunteer' });
         setIsVolunteerAccessPending(false);
         return;
       }
-      if (!email) {
+      if (!user) {
         setIsVolunteerAccessPending(false);
         setView((currentView) => (currentView.type === 'volunteer' ? { type: 'categories' } : currentView));
       }
@@ -121,7 +127,7 @@ const App: React.FC = () => {
   };
 
   const navigateBack = () => {
-    if (view.type === 'volunteer') {
+    if (view.type === 'volunteer' || view.type === 'contributor') {
       setView({ type: 'categories' });
     } else if (view.type === 'detail') {
       const resourceCategory = categories.find(c => c.id === view.resource.categoryId);
@@ -138,13 +144,13 @@ const App: React.FC = () => {
   const renderContent = () => {
     switch (view.type) {
       case 'categories':
-        return <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} />;
+        return <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} onContribute={openContribution} />;
       case 'list':
-        return <ResourceList category={view.category} resources={resources} onSelectResource={navigateToDetail} userLocation={location} />;
+        return <ResourceList category={view.category} resources={resources} onSelectResource={navigateToDetail} userLocation={location} onContribute={openContribution} />;
       case 'detail':
         return <ResourceDetail resource={view.resource} />;
       case 'volunteer':
-        if (!volunteerEmail) {
+        if (!authUser || !isVolunteerUser(authUser)) {
           return (
             <div className="mx-auto w-full max-w-3xl rounded-2xl bg-white p-6 shadow-lg dark:bg-gray-900">
               <p className="text-center text-text-light">{t('loading')}</p>
@@ -153,8 +159,8 @@ const App: React.FC = () => {
         }
         return (
           <VolunteerArea
-            volunteerName={volunteerEmail.split('@')[0] || 'ruta'}
-            volunteerEmail={volunteerEmail}
+            volunteerName={authUser.email?.split('@')[0] || 'ruta'}
+            volunteerEmail={authUser.email || ''}
             routeId={volunteerRouteId}
             categories={categories}
             resources={resources}
@@ -163,6 +169,10 @@ const App: React.FC = () => {
             onLogout={handleVolunteerLogout}
           />
         );
+      case 'contributor':
+        return authUser && !isVolunteerUser(authUser)
+          ? <ContributorArea user={authUser} categories={categories} />
+          : <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} onContribute={openContribution} />;
       default:
         return <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} />;
     }
@@ -178,6 +188,8 @@ const App: React.FC = () => {
         return view.resource.name[locale];
       case 'volunteer':
         return t('volunteerArea');
+      case 'contributor':
+        return 'Mi colaboración';
     }
   };
 
@@ -199,7 +211,7 @@ const App: React.FC = () => {
     setIsAuthLoading(true);
     setIsVolunteerAccessPending(false);
     try {
-      await logoutVolunteer();
+      await logoutAuthenticatedUser();
       setView({ type: 'categories' });
     } finally {
       setIsAuthLoading(false);
@@ -210,11 +222,27 @@ const App: React.FC = () => {
     if (!isAuthResolved || isAuthLoading) {
       return;
     }
-    if (volunteerEmail) {
+    if (authUser && isVolunteerUser(authUser)) {
       setView({ type: 'volunteer' });
       return;
     }
+    if (authUser) {
+      setView({ type: 'contributor' });
+      return;
+    }
     setIsLoginOpen(true);
+  };
+
+  const openContribution = () => {
+    if (authUser && !isVolunteerUser(authUser)) {
+      setView({ type: 'contributor' });
+      return;
+    }
+    if (authUser && isVolunteerUser(authUser)) {
+      setView({ type: 'volunteer' });
+      return;
+    }
+    setIsContributorAuthOpen(true);
   };
 
   const handleResourceAdded = (resource: Resource) => {
@@ -225,9 +253,9 @@ const App: React.FC = () => {
     setResources((prev) => prev.map((resource) => (resource.id === updated.id ? updated : resource)));
   };
   
-  const showBackButton = view.type === 'list' || view.type === 'detail' || view.type === 'volunteer';
+  const showBackButton = view.type === 'list' || view.type === 'detail' || view.type === 'volunteer' || view.type === 'contributor';
   const showHomeButton = view.type !== 'categories';
-  const volunteerRouteId = getRouteIdFromEmail(volunteerEmail);
+  const volunteerRouteId = getRouteIdFromEmail(authUser?.email || null);
 
   return (
     <div className="min-h-screen bg-background text-text-main flex flex-col font-sans">
@@ -249,8 +277,9 @@ const App: React.FC = () => {
             disabled={!isAuthResolved || isAuthLoading}
             className="text-xs text-text-light underline-offset-2 hover:text-primary hover:underline"
           >
-            {volunteerEmail ? t('volunteerArea') : t('volunteerAccess')}
+            {authUser && isVolunteerUser(authUser) ? t('volunteerArea') : t('volunteerAccess')}
           </button>
+          {!authUser || !isVolunteerUser(authUser) ? <button onClick={openContribution} className="text-xs text-text-light underline-offset-2 hover:text-primary hover:underline">{authUser ? 'Mi colaboración' : 'Añade un recurso'}</button> : null}
         </div>
       </footer>
 
@@ -271,6 +300,7 @@ const App: React.FC = () => {
         onClose={() => setIsLoginOpen(false)}
         onLogin={handleVolunteerLogin}
       />
+      <ContributorAuthModal open={isContributorAuthOpen} onClose={() => setIsContributorAuthOpen(false)} />
     </div>
   );
 };
