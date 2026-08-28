@@ -81,6 +81,42 @@ html.dark .hover\:bg-gray-100:hover {
   background-color: #374151 !important;
 }
 
+.header-surface {
+  position: relative;
+  border-bottom: 1px solid rgb(186 230 253 / .9);
+  background: linear-gradient(105deg, rgb(255 255 255 / .98), rgb(240 249 255 / .94));
+}
+.header-surface::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 2px;
+  content: '';
+  background: linear-gradient(90deg, #2aa7df, #7dd3fc 52%, transparent 86%);
+  opacity: .7;
+}
+.account-nav {
+  display: inline-flex;
+  min-height: 2.25rem;
+  align-items: center;
+  gap: .35rem;
+  border: 1px solid rgb(125 211 252 / .7);
+  border-radius: 999px;
+  background: rgb(255 255 255 / .68);
+  color: #176c9b;
+  padding: .35rem .6rem;
+  font-size: .8rem;
+  font-weight: 800;
+}
+.account-nav:hover { background: #e6f4fb; }
+.account-nav:focus-visible, .footer-link:focus-visible { outline: 2px solid #2aa7df; outline-offset: 2px; }
+.footer-surface { border-top: 1px solid rgb(203 213 225 / .8); background: rgb(248 250 252 / .88); }
+.footer-label { color: #64748b; font-weight: 800; }
+.footer-link, .footer-surface button { border: 0; background: transparent; color: #64748b; padding: .25rem; text-decoration: underline; text-underline-offset: 3px; }
+.footer-surface button:hover { color: #176c9b; }
+.footer-divider { color: #94a3b8; }
+
 .form-label { display: block; color: #334155; font-size: .875rem; font-weight: 700; }
 .form-control { display: block; width: 100%; margin-top: .35rem; border: 1px solid #cbd5e1; border-radius: .75rem; background: white; color: #1e293b; padding: .65rem .8rem; font: inherit; }
 .form-control:focus { outline: 2px solid #2aa7df; outline-offset: 1px; border-color: #2aa7df; }
@@ -98,4 +134,14 @@ html.dark .hover\:bg-gray-100:hover {
 .contribute-callout { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; border: 1px solid #bae6fd; border-radius: 1rem; background: linear-gradient(120deg, #fff 0%, #f0f9ff 100%); padding: 1.25rem; }
 .status-badge { display: inline-flex; width: fit-content; border-radius: 999px; padding: .2rem .55rem; font-size: .75rem; font-weight: 800; }.status-pending_review, .status-withdrawal_requested { background: #fef3c7; color: #92400e; }.status-published { background: #dcfce7; color: #166534; }.status-rejected { background: #fee2e2; color: #991b1b; }.status-archived { background: #e2e8f0; color: #475569; }
 html.dark .panel, html.dark .form-control, html.dark .button-secondary, html.dark .button-danger, html.dark .button-google { background: #111827; color: #f3f4f6; border-color: #374151; }
-html.dark .contribute-callout { background: #111827; border-color: #155e75; }.form-control:disabled { background: #f1f5f9; color: #64748b; }
+html.dark .contribute-callout { background: linear-gradient(120deg, #111827 0%, #102a3d 100%); border-color: #155e75; }
+html.dark .header-surface { border-color: rgb(21 94 117 / .9); background: linear-gradient(105deg, rgb(15 23 42 / .98), rgb(16 42 61 / .96)); }
+html.dark .header-surface::after { background: linear-gradient(90deg, #38bdf8, #155e75 54%, transparent 90%); opacity: .9; }
+html.dark .account-nav { border-color: #155e75; background: rgb(15 23 42 / .55); color: #bae6fd; }
+html.dark .account-nav:hover { background: #10354d; }
+html.dark .footer-surface { border-color: #263548; background: #0d1726; }
+html.dark .footer-label, html.dark .footer-link, html.dark .footer-surface button { color: #cbd5e1; }
+html.dark .footer-surface button:hover { color: #7dd3fc; }
+html.dark .footer-divider { color: #64748b; }
+html.dark .form-control:disabled { background: #1f2937; color: #94a3b8; }
+.form-control:disabled { background: #f1f5f9; color: #64748b; }

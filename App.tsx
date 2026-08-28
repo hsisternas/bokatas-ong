@@ -32,6 +32,8 @@ const App: React.FC = () => {
   const [isVolunteerAccessPending, setIsVolunteerAccessPending] = useState(false);
   const [isContributorAuthOpen, setIsContributorAuthOpen] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
+  const [contributorScreen, setContributorScreen] = useState<'list' | 'create'>('list');
+  const [pendingContributorIntent, setPendingContributorIntent] = useState<'list' | 'create' | null>(null);
   const isVolunteerAccessPendingRef = useRef(false);
   
   const { location, requestLocation } = useGeolocation();
@@ -96,6 +98,12 @@ const App: React.FC = () => {
         setIsVolunteerAccessPending(false);
         return;
       }
+      if (user && !isVolunteerUser(user) && pendingContributorIntent) {
+        setContributorScreen(pendingContributorIntent);
+        setPendingContributorIntent(null);
+        setView({ type: 'contributor' });
+        return;
+      }
       if (!user) {
         setIsVolunteerAccessPending(false);
         setView((currentView) => (currentView.type === 'volunteer' ? { type: 'categories' } : currentView));
@@ -103,7 +111,7 @@ const App: React.FC = () => {
     });
 
     return unsubscribe;
-  }, []);
+  }, [pendingContributorIntent]);
 
   // Scroll to top on view change
   useEffect(() => {
@@ -171,7 +179,7 @@ const App: React.FC = () => {
         );
       case 'contributor':
         return authUser && !isVolunteerUser(authUser)
-          ? <ContributorArea user={authUser} categories={categories} />
+          ? <ContributorArea user={authUser} categories={categories} initialScreen={contributorScreen} onLogout={handleContributorLogout} />
           : <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} onContribute={openContribution} />;
       default:
         return <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} />;
@@ -189,7 +197,7 @@ const App: React.FC = () => {
       case 'volunteer':
         return t('volunteerArea');
       case 'contributor':
-        return 'Mi colaboración';
+        return 'Mis recursos';
     }
   };
 
@@ -218,6 +226,24 @@ const App: React.FC = () => {
     }
   };
 
+  const handleContributorLogout = async () => {
+    await logoutAuthenticatedUser();
+    setContributorScreen('list');
+    setView({ type: 'categories' });
+  };
+
+  const openContributorArea = () => {
+    if (authUser && !isVolunteerUser(authUser)) {
+      setContributorScreen('list');
+      setView({ type: 'contributor' });
+      return;
+    }
+    if (!authUser) {
+      setPendingContributorIntent('list');
+      setIsContributorAuthOpen(true);
+    }
+  };
+
   const openVolunteerAccess = () => {
     if (!isAuthResolved || isAuthLoading) {
       return;
@@ -235,6 +261,7 @@ const App: React.FC = () => {
 
   const openContribution = () => {
     if (authUser && !isVolunteerUser(authUser)) {
+      setContributorScreen('create');
       setView({ type: 'contributor' });
       return;
     }
@@ -242,6 +269,7 @@ const App: React.FC = () => {
       setView({ type: 'volunteer' });
       return;
     }
+    setPendingContributorIntent('create');
     setIsContributorAuthOpen(true);
   };
 
@@ -261,6 +289,7 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-background text-text-main flex flex-col font-sans">
       <Header title={getTitle()} showBackButton={showBackButton} onBack={navigateBack}>
         <div className="flex items-center gap-1">
+          {!authUser || !isVolunteerUser(authUser) ? <button className="account-nav" onClick={openContributorArea} aria-label={authUser ? 'Mis recursos' : 'Acceder a mi cuenta'}><span className="material-symbols-outlined" aria-hidden="true">person</span><span className="hidden sm:inline">{authUser ? 'Mis recursos' : 'Mi cuenta'}</span></button> : null}
           <ThemeToggle isDark={theme === 'dark'} onToggle={toggleTheme} />
           <LanguageSelector />
         </div>
@@ -270,17 +299,18 @@ const App: React.FC = () => {
         {renderContent()}
       </main>
 
-      <footer className="safe-bottom mt-auto w-full border-t border-gray-200/70 px-6 py-3 dark:border-gray-700/70">
-        <div className="container mx-auto flex justify-center">
+      <footer className="footer-surface safe-bottom mt-auto w-full px-6 py-3">
+        <nav className="container mx-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs" aria-label="Participación">
+          <span className="footer-label">Participa</span>
           <button
             onClick={openVolunteerAccess}
             disabled={!isAuthResolved || isAuthLoading}
             className="text-xs text-text-light underline-offset-2 hover:text-primary hover:underline"
           >
-            {authUser && isVolunteerUser(authUser) ? t('volunteerArea') : t('volunteerAccess')}
+            {authUser && isVolunteerUser(authUser) ? t('volunteerArea') : 'Voluntariado'}
           </button>
-          {!authUser || !isVolunteerUser(authUser) ? <button onClick={openContribution} className="text-xs text-text-light underline-offset-2 hover:text-primary hover:underline">{authUser ? 'Mi colaboración' : 'Añade un recurso'}</button> : null}
-        </div>
+          {!authUser || !isVolunteerUser(authUser) ? <><span className="footer-divider" aria-hidden="true">·</span><button onClick={openContributorArea} className="footer-link">{authUser ? 'Mis recursos' : 'Mi cuenta'}</button></> : null}
+        </nav>
       </footer>
 
       {showHomeButton && (
@@ -300,7 +330,7 @@ const App: React.FC = () => {
         onClose={() => setIsLoginOpen(false)}
         onLogin={handleVolunteerLogin}
       />
-      <ContributorAuthModal open={isContributorAuthOpen} onClose={() => setIsContributorAuthOpen(false)} />
+      <ContributorAuthModal open={isContributorAuthOpen} intent={pendingContributorIntent} onClose={() => setIsContributorAuthOpen(false)} onDismiss={() => { setIsContributorAuthOpen(false); setPendingContributorIntent(null); }} />
     </div>
   );
 };

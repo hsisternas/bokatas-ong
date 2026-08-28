@@ -214,7 +214,7 @@ const validateViewport = async (name, pageOptions) => {
     await page.waitForFunction(
       (expectedEmail) => {
         const text = document.body.innerText;
-        return (text.includes('Acceso voluntarios') || text.includes('Volunteer access')) && !text.includes(expectedEmail);
+        return (text.includes('Voluntariado') || text.includes('Volunteer access')) && !text.includes(expectedEmail);
       },
       TARGET_USERNAME,
       { timeout: 5000 }

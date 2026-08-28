@@ -5,15 +5,16 @@ interface HeaderProps {
   title: string;
   showBackButton: boolean;
   onBack: () => void;
+  brandAsset?: React.ReactNode;
   children?: React.ReactNode;
 }
 
-const Header: React.FC<HeaderProps> = ({ title, showBackButton, onBack, children }) => {
+const Header: React.FC<HeaderProps> = ({ title, showBackButton, onBack, brandAsset, children }) => {
   const { t } = useTranslation();
   const isHome = title === t('appName');
 
   return (
-    <header className="safe-top sticky top-0 z-30 border-b border-slate-200/90 bg-white/95 text-text-main backdrop-blur">
+    <header className="header-surface safe-top sticky top-0 z-30 text-text-main backdrop-blur">
       <div className="container mx-auto flex min-h-14 items-center justify-between gap-3 px-4 py-2 sm:px-6">
         <div className="flex items-center min-w-0">
           {showBackButton && (
@@ -22,7 +23,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBackButton, onBack, children
             </button>
           )}
           <div className="flex flex-col">
-            <div className="flex items-center gap-2"><span className="brand-mark" aria-hidden="true">B</span><h1 className="text-lg font-extrabold tracking-tight truncate">{isHome ? 'Bokatas' : title}</h1></div>
+            <div className="flex items-center gap-2">{brandAsset}<h1 className="text-lg font-extrabold tracking-tight truncate">{isHome ? 'Bokatas' : title}</h1></div>
             {isHome && (
               <p className="text-xs text-text-light truncate">{t('headerSubtitle')}</p>
             )}

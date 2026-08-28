@@ -16,6 +16,7 @@
     "test:map-xss": "node scripts/validate-map-popup-xss.mjs",
     "test:list-map": "node scripts/validate-list-map-toggle.mjs",
     "test:volunteer-dropdowns": "node scripts/validate-volunteer-dropdowns.mjs",
+    "test:contributor-navigation": "node scripts/validate-contributor-navigation.mjs",
     "test:smoke-real": "node scripts/validate-real-volunteer-smoke.mjs"
   },
   "dependencies": {
