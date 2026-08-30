@@ -17,6 +17,7 @@
     "test:list-map": "node scripts/validate-list-map-toggle.mjs",
     "test:volunteer-dropdowns": "node scripts/validate-volunteer-dropdowns.mjs",
     "test:contributor-navigation": "node scripts/validate-contributor-navigation.mjs",
+    "test:weekly-export": "node scripts/validate-weekly-export.mjs",
     "test:smoke-real": "node scripts/validate-real-volunteer-smoke.mjs"
   },
   "dependencies": {

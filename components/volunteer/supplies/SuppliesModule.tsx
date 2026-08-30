@@ -22,6 +22,7 @@ import {
   updateRouteWeekAdjustments,
   type RouteSupplyWeek,
 } from '../../../services/supplyService';
+import { shareOrDownloadExport, toSummaryRows, type ShoppingListExport, type WeeklySummaryExport } from '../../../services/weeklyExport';
 
 type SuppliesTab = 'my-route' | 'global-summary' | 'shopping-list';
 
@@ -61,6 +62,7 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingWeek, setIsSavingWeek] = useState(false);
   const [isConfirmingWeek, setIsConfirmingWeek] = useState(false);
+  const [isExporting, setIsExporting] = useState<'summary' | 'shopping-list' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [base, setBase] = useState<SupplyValues>(createEmptySupplyValues());
@@ -106,12 +108,6 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
     loadWeek();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeId, weekKey]);
-
-  useEffect(() => {
-    const cleanup = () => document.body.classList.remove('supply-printing');
-    window.addEventListener('afterprint', cleanup);
-    return () => { window.removeEventListener('afterprint', cleanup); cleanup(); };
-  }, []);
 
   const changeAdjustmentByStep = (field: SupplyField, step: number) => {
     setHasUnsavedChanges(true);
@@ -164,10 +160,34 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
   const confirmedRouteIds = ROUTE_IDS.filter((id) => Boolean(globalWeekStates[id]?.confirmedAt));
   const pendingRouteIds = ROUTE_IDS.filter((id) => !globalWeekStates[id]?.confirmedAt);
   const isMyRouteConfirmed = Boolean(globalWeekStates[routeId]?.confirmedAt);
+  const supplyLabels = useMemo(() => SUPPLY_FIELDS.reduce((labels, field) => ({ ...labels, [field]: t(fieldLabelKeyMap[field]) }), {} as Record<SupplyField, string>), [t]);
+  const summaryExport = useMemo<WeeklySummaryExport>(() => ({
+    kind: 'summary', weekKey, routes: summaryColumns.map((column) => column.displayName),
+    rows: toSummaryRows(SUPPLY_FIELDS, supplyLabels, summaryColumns.map((column) => column.final), globalTotals),
+    sandwichTotals: summaryColumns.map((column) => getRouteSandwichTotal(column.final)), totalSandwiches: globalTotals.tortilla + globalTotals.pavo,
+  }), [globalTotals, summaryColumns, supplyLabels, weekKey]);
+  const shoppingEntries = useMemo(() => [
+    { label: t('shoppingPanBarras'), value: shoppingList.panBarras, unit: t('shoppingUnitBars'), description: t('shoppingPanBarrasDescription') },
+    { label: t('shoppingPanPacks'), value: shoppingList.panPacks, unit: t('shoppingUnitPack2'), description: t('shoppingPanPacksDescription') },
+    { label: t('shoppingTortillas'), value: shoppingList.tortillas, unit: t('shoppingUnitUnits'), description: t('shoppingTortillasDescription') },
+    { label: t('shoppingPavoSlices'), value: shoppingList.lonchasPavo, unit: t('shoppingUnitSlices'), description: t('shoppingPavoSlicesDescription') },
+    { label: t('shoppingZumoBriks'), value: shoppingList.briksZumo, unit: t('shoppingUnitBriks'), description: t('shoppingZumoBriksDescription') },
+    { label: t('shoppingGazpachoBriks'), value: shoppingList.briksGazpacho, unit: t('shoppingUnitBriks'), description: t('shoppingGazpachoBriksDescription') },
+    { label: t('shoppingCaldoBriks'), value: shoppingList.briksCaldo, unit: t('shoppingUnitBriks'), description: t('shoppingCaldoBriksDescription') },
+    { label: t('shoppingLecheBriks'), value: shoppingList.briksLeche, unit: t('shoppingUnitBriks'), description: t('shoppingLecheBriksDescription') },
+    { label: t('shoppingFrutaTotal'), value: shoppingList.frutaTotal, unit: t('shoppingUnitEuros'), description: t('shoppingFrutaTotalDescription') },
+  ], [shoppingList, t]);
+  const shoppingExport = useMemo<ShoppingListExport>(() => ({ kind: 'shopping-list', weekKey, entries: shoppingEntries, confirmedRoutes: confirmedRouteIds.length, totalRoutes: ROUTE_IDS.length, pendingRoutes: pendingRouteIds.map(formatRouteName) }), [confirmedRouteIds.length, pendingRouteIds, shoppingEntries, weekKey]);
 
-  const printSection = () => {
-    document.body.classList.add('supply-printing');
-    window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
+  const handleShare = async (kind: 'summary' | 'shopping-list') => {
+    setIsExporting(kind); setError(null); setSuccess(null);
+    try {
+      const result = await shareOrDownloadExport(kind === 'summary' ? summaryExport : shoppingExport);
+      setSuccess(result === 'shared' ? 'Imagen preparada para compartir.' : 'Imagen descargada.');
+    } catch (exportError) {
+      if (exportError instanceof DOMException && exportError.name === 'AbortError') return;
+      setError('No se ha podido generar la imagen. Inténtalo de nuevo.');
+    } finally { setIsExporting(null); }
   };
 
   const renderMyRoute = () => {
@@ -188,6 +208,11 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
         <p className="text-sm text-text-light">
           {t('volunteerWelcome')}: <span className="font-semibold text-text-main">{formatRouteName(routeId)}</span>
         </p>
+
+        <section className="weekly-readiness" aria-labelledby="weekly-readiness-title">
+          <div><h3 id="weekly-readiness-title" className="font-semibold text-text-main">Estado de esta semana</h3><p className="text-sm text-text-light">{confirmedRouteIds.length} de {ROUTE_IDS.length} rutas preparadas</p></div>
+          <ul className="route-readiness-list">{ROUTE_IDS.map((id) => { const confirmed = Boolean(globalWeekStates[id]?.confirmedAt); return <li key={id} aria-label={`${formatRouteName(id)}: ${confirmed ? 'validada' : 'pendiente'}`}><span className={`route-readiness-dot ${confirmed ? 'is-confirmed' : ''}`} aria-hidden="true" /> <span>{formatRouteName(id)}</span><span className="sr-only">: {confirmed ? 'validada' : 'pendiente'}</span></li>; })}</ul>
+        </section>
 
         <div className="space-y-3">
           {SUPPLY_FIELDS.map((field) => (
@@ -244,21 +269,17 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
         </div>
         {hasUnsavedChanges && <p className="text-sm text-amber-700 dark:text-amber-300">Guarda los cambios antes de confirmar que la ruta está lista.</p>}
 
-        <section className="weekly-readiness" aria-labelledby="weekly-readiness-title">
-          <div><h3 id="weekly-readiness-title" className="font-semibold text-text-main">Estado de esta semana</h3><p className="text-sm text-text-light">{confirmedRouteIds.length} de {ROUTE_IDS.length} rutas preparadas</p></div>
-          <ul className="route-readiness-list">{ROUTE_IDS.map((id) => { const confirmed = Boolean(globalWeekStates[id]?.confirmedAt); return <li key={id} aria-label={`${formatRouteName(id)}: ${confirmed ? 'validada' : 'pendiente'}`}><span className={`route-readiness-dot ${confirmed ? 'is-confirmed' : ''}`} aria-hidden="true" /> <span>{formatRouteName(id)}</span><span className="sr-only">: {confirmed ? 'validada' : 'pendiente'}</span></li>; })}</ul>
-        </section>
       </div>
     );
   };
 
   const renderSummary = () => {
     return (
-      <div className="print-target space-y-4">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div><h3 className="text-lg font-semibold text-text-main">{t('supplyGlobalSummary')}</h3><p className="print-week text-sm text-text-light">Semana {weekKey}</p></div>
-          <button onClick={printSection} className="print-control rounded-lg border px-3 py-2 text-sm" type="button">
-            {t('print')}
+          <button onClick={() => handleShare('summary')} disabled={isExporting !== null} className="button-secondary flex items-center gap-1 text-sm" type="button">
+            <span className="material-symbols-outlined text-base" aria-hidden="true">ios_share</span>{isExporting === 'summary' ? t('loading') : 'Compartir resumen'}
           </button>
         </div>
         <WeeklyReadinessSummary confirmedRouteIds={confirmedRouteIds} pendingRouteIds={pendingRouteIds} />
@@ -304,69 +325,12 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
   };
 
   const renderShoppingList = () => {
-    const entries = [
-      {
-        label: t('shoppingPanBarras'),
-        value: shoppingList.panBarras,
-        unit: t('shoppingUnitBars'),
-        description: t('shoppingPanBarrasDescription'),
-      },
-      {
-        label: t('shoppingPanPacks'),
-        value: shoppingList.panPacks,
-        unit: t('shoppingUnitPack2'),
-        description: t('shoppingPanPacksDescription'),
-      },
-      {
-        label: t('shoppingTortillas'),
-        value: shoppingList.tortillas,
-        unit: t('shoppingUnitUnits'),
-        description: t('shoppingTortillasDescription'),
-      },
-      {
-        label: t('shoppingPavoSlices'),
-        value: shoppingList.lonchasPavo,
-        unit: t('shoppingUnitSlices'),
-        description: t('shoppingPavoSlicesDescription'),
-      },
-      {
-        label: t('shoppingZumoBriks'),
-        value: shoppingList.briksZumo,
-        unit: t('shoppingUnitBriks'),
-        description: t('shoppingZumoBriksDescription'),
-      },
-      {
-        label: t('shoppingGazpachoBriks'),
-        value: shoppingList.briksGazpacho,
-        unit: t('shoppingUnitBriks'),
-        description: t('shoppingGazpachoBriksDescription'),
-      },
-      {
-        label: t('shoppingCaldoBriks'),
-        value: shoppingList.briksCaldo,
-        unit: t('shoppingUnitBriks'),
-        description: t('shoppingCaldoBriksDescription'),
-      },
-      {
-        label: t('shoppingLecheBriks'),
-        value: shoppingList.briksLeche,
-        unit: t('shoppingUnitBriks'),
-        description: t('shoppingLecheBriksDescription'),
-      },
-      {
-        label: t('shoppingFrutaTotal'),
-        value: shoppingList.frutaTotal,
-        unit: t('shoppingUnitEuros'),
-        description: t('shoppingFrutaTotalDescription'),
-      },
-    ];
-
     return (
-      <div className="print-target space-y-4">
+      <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div><h3 className="text-lg font-semibold text-text-main">{t('shoppingListTitle')}</h3><p className="print-week text-sm text-text-light">Semana {weekKey}</p></div>
-          <button onClick={printSection} className="print-control rounded-lg border px-3 py-2 text-sm" type="button">
-            {t('print')}
+          <button onClick={() => handleShare('shopping-list')} disabled={isExporting !== null} className="button-secondary flex items-center gap-1 text-sm" type="button">
+            <span className="material-symbols-outlined text-base" aria-hidden="true">ios_share</span>{isExporting === 'shopping-list' ? t('loading') : 'Compartir lista'}
           </button>
         </div>
         <WeeklyReadinessSummary confirmedRouteIds={confirmedRouteIds} pendingRouteIds={pendingRouteIds} />
@@ -381,7 +345,7 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
               </tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
+              {shoppingEntries.map((entry) => (
                 <tr key={entry.label} className="border-t border-gray-200 dark:border-gray-700">
                   <td className="px-3 py-2">{entry.label}</td>
                   <td className="px-3 py-2 text-right font-semibold">{entry.value}</td>

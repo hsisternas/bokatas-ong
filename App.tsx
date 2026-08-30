@@ -83,6 +83,12 @@ const App: React.FC = () => {
     if (themeColorMeta) {
       themeColorMeta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#f0f9ff');
     }
+    // This value applies to Home-screen web apps; Safari itself controls its
+    // chrome and does not guarantee dynamic status-bar icon changes.
+    const appleStatusBarMeta = document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+    if (appleStatusBarMeta) {
+      appleStatusBarMeta.setAttribute('content', theme === 'dark' ? 'black-translucent' : 'default');
+    }
   }, [theme]);
 
   useEffect(() => {

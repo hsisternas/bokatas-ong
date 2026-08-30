@@ -158,17 +158,3 @@ html.dark .volunteer-review-notice { border-color: #155e75; background: linear-g
 html.dark .route-readiness-list { color: #cbd5e1; }
 html.dark .route-readiness-dot { box-shadow: 0 0 0 2px #334155; }
 html.dark .route-readiness-dot.is-confirmed { box-shadow: 0 0 0 2px #166534; }
-
-@media print {
-  @page { margin: 12mm; }
-  body.supply-printing { background: white !important; color: #111827 !important; }
-  body.supply-printing #root * { visibility: hidden !important; }
-  body.supply-printing .print-target, body.supply-printing .print-target * { visibility: visible !important; }
-  body.supply-printing .print-target { position: absolute; inset: 0; width: 100%; color: #111827 !important; background: white !important; }
-  body.supply-printing .print-control { display: none !important; }
-  body.supply-printing table { width: 100% !important; border-collapse: collapse !important; }
-  body.supply-printing th, body.supply-printing td { border: 1px solid #cbd5e1 !important; padding: 5px !important; color: #111827 !important; background: white !important; font-size: 10px !important; }
-  body.supply-printing th { background: #f1f5f9 !important; }
-  body.supply-printing tr { break-inside: avoid; }
-  body.supply-printing .weekly-readiness-summary { margin: .6rem 0; border-color: #cbd5e1; background: #f8fafc; }
-}
