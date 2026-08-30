@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from '../../../contexts/LanguageContext';
 import {
   applyAdjustments,
@@ -14,6 +14,7 @@ import {
 import { getSupplyRules } from '../../../services/supplyRules';
 import {
   DEFAULT_ROUTES_CONFIG,
+  confirmRouteWeek,
   getCurrentISOWeekKey,
   getGlobalWeekStates,
   getRouteWeekState,
@@ -46,19 +47,25 @@ const formatRouteName = (routeId: string): string => {
 
 const formatNumber = (value: number): string => value.toFixed(1).replace('.0', '');
 
+const WeeklyReadinessSummary: React.FC<{ confirmedRouteIds: string[]; pendingRouteIds: string[] }> = ({ confirmedRouteIds, pendingRouteIds }) => (
+  <section className="weekly-readiness-summary" aria-label="Estado de preparación de las rutas">
+    <p className="font-semibold text-text-main">{confirmedRouteIds.length}/{ROUTE_IDS.length} rutas confirmadas</p>
+    {pendingRouteIds.length === 0 ? <p className="text-sm text-emerald-700 dark:text-emerald-300">Todo listo para preparar la compra.</p> : <p className="text-sm text-text-light">Pendientes: {pendingRouteIds.map(formatRouteName).join(', ')}</p>}
+  </section>
+);
+
 const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SuppliesTab>('my-route');
   const [weekKey, setWeekKey] = useState<string>(getCurrentISOWeekKey());
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingWeek, setIsSavingWeek] = useState(false);
+  const [isConfirmingWeek, setIsConfirmingWeek] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [base, setBase] = useState<SupplyValues>(createEmptySupplyValues());
   const [adjustments, setAdjustments] = useState<SupplyValues>(createEmptySupplyValues());
   const [globalWeekStates, setGlobalWeekStates] = useState<Record<string, RouteSupplyWeek>>({});
-  const summaryPrintRef = useRef<HTMLDivElement | null>(null);
-  const shoppingPrintRef = useRef<HTMLDivElement | null>(null);
   const [rules, setRules] = useState({
     breadSandwichesPerBar: 3,
     breadBarsPerPack: 2,
@@ -98,6 +105,12 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeId, weekKey]);
 
+  useEffect(() => {
+    const cleanup = () => document.body.classList.remove('supply-printing');
+    window.addEventListener('afterprint', cleanup);
+    return () => { window.removeEventListener('afterprint', cleanup); cleanup(); };
+  }, []);
+
   const changeAdjustmentByStep = (field: SupplyField, step: number) => {
     setAdjustments((prev) => ({
       ...prev,
@@ -113,12 +126,22 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
       const updatedWeek = await updateRouteWeekAdjustments(routeId, weekKey, adjustments, userEmail);
       setAdjustments(updatedWeek.adjustments);
       setGlobalWeekStates((prev) => ({ ...prev, [routeId]: updatedWeek }));
-      setSuccess(t('supplyWeekSaved'));
+      setSuccess(updatedWeek.confirmedAt ? t('supplyWeekSaved') : 'Datos guardados. Confirma de nuevo la semana cuando estén listos.');
     } catch {
       setError(t('supplySaveError'));
     } finally {
       setIsSavingWeek(false);
     }
+  };
+
+  const handleConfirmWeek = async () => {
+    setIsConfirmingWeek(true); setError(null); setSuccess(null);
+    try {
+      const confirmed = await confirmRouteWeek(routeId, weekKey, userEmail);
+      setGlobalWeekStates((prev) => ({ ...prev, [routeId]: confirmed }));
+      setSuccess('Ruta confirmada como lista para esta semana.');
+    } catch { setError('No se ha podido confirmar esta ruta. Guarda los cambios e inténtalo de nuevo.'); }
+    finally { setIsConfirmingWeek(false); }
   };
 
   const globalTotals = useMemo(() => {
@@ -134,89 +157,13 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
     final: globalWeekStates[id]?.final || DEFAULT_ROUTES_CONFIG[id].baseWeekly,
   }));
 
-  const getExportActionLabel = () => t('print');
+  const confirmedRouteIds = ROUTE_IDS.filter((id) => Boolean(globalWeekStates[id]?.confirmedAt));
+  const pendingRouteIds = ROUTE_IDS.filter((id) => !globalWeekStates[id]?.confirmedAt);
+  const isMyRouteConfirmed = Boolean(globalWeekStates[routeId]?.confirmedAt);
 
-  const buildPrintableHtml = (title: string, contentHtml: string) => `
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>${title}</title>
-        <style>
-          body { font-family: Arial, sans-serif; padding: 16px; color: #111827; }
-          h1 { font-size: 20px; margin: 0 0 12px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-          th, td { border: 1px solid #d1d5db; padding: 8px; font-size: 12px; vertical-align: top; }
-          th { background: #f3f4f6; text-align: left; }
-          button { display: none !important; }
-          input { border: none; }
-        </style>
-      </head>
-      <body>
-        <h1>${title}</h1>
-        <div>${contentHtml}</div>
-        <script>
-          window.addEventListener('load', () => {
-            setTimeout(() => window.print(), 250);
-          });
-        </script>
-      </body>
-    </html>
-  `;
-
-  const printSection = (title: string, ref: React.RefObject<HTMLDivElement | null>) => {
-    const content = ref.current;
-    if (!content) {
-      window.print();
-      return;
-    }
-    const printableHtml = buildPrintableHtml(title, content.innerHTML);
-
-    const popup = window.open('', '_blank', 'noopener,noreferrer');
-    if (popup) {
-      popup.document.open();
-      popup.document.write(printableHtml);
-      popup.document.close();
-      return;
-    }
-
-    const iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.right = '0';
-    iframe.style.bottom = '0';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
-    iframe.style.border = '0';
-    iframe.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(iframe);
-
-    const frameWindow = iframe.contentWindow;
-    const frameDoc = frameWindow?.document;
-    if (!frameWindow || !frameDoc) {
-      document.body.removeChild(iframe);
-      window.print();
-      return;
-    }
-
-    frameDoc.open();
-    frameDoc.write(printableHtml);
-    frameDoc.close();
-
-    const cleanup = () => {
-      if (document.body.contains(iframe)) {
-        document.body.removeChild(iframe);
-      }
-    };
-
-    frameWindow.onafterprint = cleanup;
-
-    setTimeout(() => {
-      frameWindow.focus();
-      frameWindow.print();
-      // Fallback cleanup for browsers that do not fire onafterprint reliably.
-      setTimeout(cleanup, 60000);
-    }, 200);
+  const printSection = () => {
+    document.body.classList.add('supply-printing');
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
   };
 
   const renderMyRoute = () => {
@@ -282,20 +229,34 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
           >
             {isSavingWeek ? t('loading') : t('supplySaveWeek')}
           </button>
+          <button
+            onClick={handleConfirmWeek}
+            disabled={isConfirmingWeek || isSavingWeek || isLoading || isMyRouteConfirmed}
+            className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 disabled:opacity-60 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+            type="button"
+          >
+            {isMyRouteConfirmed ? 'Datos de esta semana confirmados' : isConfirmingWeek ? t('loading') : 'Confirmar datos de esta semana'}
+          </button>
         </div>
+
+        <section className="weekly-readiness" aria-labelledby="weekly-readiness-title">
+          <div><h3 id="weekly-readiness-title" className="font-semibold text-text-main">Estado de esta semana</h3><p className="text-sm text-text-light">{confirmedRouteIds.length} de {ROUTE_IDS.length} rutas preparadas</p></div>
+          <ul className="route-readiness-list">{ROUTE_IDS.map((id) => { const confirmed = Boolean(globalWeekStates[id]?.confirmedAt); return <li key={id} aria-label={`${formatRouteName(id)}: ${confirmed ? 'validada' : 'pendiente'}`}><span className={`route-readiness-dot ${confirmed ? 'is-confirmed' : ''}`} aria-hidden="true" /> <span>{formatRouteName(id)}</span><span className="sr-only">: {confirmed ? 'validada' : 'pendiente'}</span></li>; })}</ul>
+        </section>
       </div>
     );
   };
 
   const renderSummary = () => {
     return (
-      <div ref={summaryPrintRef} className="space-y-4">
+      <div className="print-target space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-text-main">{t('supplyGlobalSummary')}</h3>
-          <button onClick={() => printSection(t('supplyGlobalSummary'), summaryPrintRef)} className="rounded-lg border px-3 py-2 text-sm" type="button">
-            {getExportActionLabel()}
+          <div><h3 className="text-lg font-semibold text-text-main">{t('supplyGlobalSummary')}</h3><p className="print-week text-sm text-text-light">Semana {weekKey}</p></div>
+          <button onClick={printSection} className="print-control rounded-lg border px-3 py-2 text-sm" type="button">
+            {t('print')}
           </button>
         </div>
+        <WeeklyReadinessSummary confirmedRouteIds={confirmedRouteIds} pendingRouteIds={pendingRouteIds} />
         <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
           <table className="min-w-full text-sm">
             <thead className="bg-secondary dark:bg-gray-800">
@@ -396,13 +357,14 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
     ];
 
     return (
-      <div ref={shoppingPrintRef} className="space-y-4">
+      <div className="print-target space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-text-main">{t('shoppingListTitle')}</h3>
-          <button onClick={() => printSection(t('shoppingListTitle'), shoppingPrintRef)} className="rounded-lg border px-3 py-2 text-sm" type="button">
-            {getExportActionLabel()}
+          <div><h3 className="text-lg font-semibold text-text-main">{t('shoppingListTitle')}</h3><p className="print-week text-sm text-text-light">Semana {weekKey}</p></div>
+          <button onClick={printSection} className="print-control rounded-lg border px-3 py-2 text-sm" type="button">
+            {t('print')}
           </button>
         </div>
+        <WeeklyReadinessSummary confirmedRouteIds={confirmedRouteIds} pendingRouteIds={pendingRouteIds} />
         <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700">
           <table className="min-w-full text-sm">
             <thead className="bg-secondary dark:bg-gray-800">

@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import type { Category, Resource } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 import VolunteerModules from './volunteer/VolunteerModules';
+import { getReviewResourceRecords } from '../services/canonicalResourceService';
 
 interface VolunteerAreaProps {
   volunteerName: string;
@@ -25,6 +26,9 @@ const VolunteerArea: React.FC<VolunteerAreaProps> = ({
   onLogout,
 }) => {
   const { t } = useTranslation();
+  const [reviewCount, setReviewCount] = useState(0);
+  const [openReviewSignal, setOpenReviewSignal] = useState(0);
+  useEffect(() => { getReviewResourceRecords().then((items) => setReviewCount(items.length)).catch(() => setReviewCount(0)); }, []);
 
   return (
     <div className="mx-auto w-full max-w-5xl rounded-2xl bg-white p-3 shadow-lg sm:p-6 dark:bg-gray-900">
@@ -34,6 +38,8 @@ const VolunteerArea: React.FC<VolunteerAreaProps> = ({
       </p>
       <p className="mt-3 text-sm text-text-light">{t('volunteerAreaIntro')}</p>
 
+      {reviewCount > 0 && <section className="volunteer-review-notice" aria-label={`${reviewCount} recursos pendientes de revisión`}><div><p className="font-semibold text-text-main">Hay {reviewCount} recurso{reviewCount === 1 ? '' : 's'} esperando revisión</p><p className="text-sm text-text-light">Comprueba los recursos enviados por colaboradores.</p></div><button className="button-secondary" onClick={() => setOpenReviewSignal((value) => value + 1)}>Revisar ahora</button></section>}
+
       <div className="mt-6">
         <VolunteerModules
           routeId={routeId}
@@ -42,6 +48,9 @@ const VolunteerArea: React.FC<VolunteerAreaProps> = ({
           resources={resources}
           onResourceAdded={onResourceAdded}
           onResourceUpdated={onResourceUpdated}
+          reviewCount={reviewCount}
+          onReviewCountChange={setReviewCount}
+          openReviewSignal={openReviewSignal}
         />
       </div>
 

@@ -81,7 +81,7 @@ const App: React.FC = () => {
 
     const themeColorMeta = document.querySelector('meta[name="theme-color"]');
     if (themeColorMeta) {
-      themeColorMeta.setAttribute('content', '#2AA7DF');
+      themeColorMeta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#f0f9ff');
     }
   }, [theme]);
 

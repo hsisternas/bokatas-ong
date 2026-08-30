@@ -1,0 +1,9 @@
+{
+  "name": "Bokatas",
+  "short_name": "Bokatas",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#2AA7DF",
+  "lang": "es"
+}

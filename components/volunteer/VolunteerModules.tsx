@@ -14,6 +14,9 @@ interface VolunteerModulesProps {
   resources: Resource[];
   onResourceAdded: (resource: Resource) => void;
   onResourceUpdated: (resource: Resource) => void;
+  reviewCount: number;
+  onReviewCountChange: (count: number) => void;
+  openReviewSignal: number;
 }
 
 type VolunteerModuleId = 'supplies' | 'review-resources' | 'add-resource' | 'edit-resource';
@@ -25,11 +28,13 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
   resources,
   onResourceAdded,
   onResourceUpdated,
+  reviewCount,
+  onReviewCountChange,
+  openReviewSignal,
 }) => {
   const { t } = useTranslation();
   const [activeModule, setActiveModule] = useState<VolunteerModuleId>('supplies');
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);
-  const [reviewCount, setReviewCount] = useState(0);
   const selectorRef = useRef<HTMLDivElement | null>(null);
 
   const moduleOptions: { id: VolunteerModuleId; label: string; icon: string }[] = [
@@ -54,9 +59,8 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
     return () => document.removeEventListener('pointerdown', handlePointerDownOutside);
   }, []);
 
-  useEffect(() => {
-    getReviewResourceRecords().then((items) => setReviewCount(items.length)).catch(() => setReviewCount(0));
-  }, [activeModule]);
+  useEffect(() => { if (openReviewSignal > 0) setActiveModule('review-resources'); }, [openReviewSignal]);
+  useEffect(() => { getReviewResourceRecords().then((items) => onReviewCountChange(items.length)).catch(() => undefined); }, [activeModule, onReviewCountChange]);
 
   return (
     <div>
@@ -102,7 +106,7 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
           <SuppliesModule routeId={routeId} userEmail={userEmail} />
         )}
 
-        {activeModule === 'review-resources' && <ReviewResourcesModule />}
+        {activeModule === 'review-resources' && <ReviewResourcesModule onReviewCountChange={onReviewCountChange} />}
 
         {activeModule === 'add-resource' && (
           <AddResourceModule categories={categories} onResourceAdded={onResourceAdded} />

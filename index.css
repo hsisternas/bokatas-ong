@@ -145,3 +145,30 @@ html.dark .footer-surface button:hover { color: #7dd3fc; }
 html.dark .footer-divider { color: #64748b; }
 html.dark .form-control:disabled { background: #1f2937; color: #94a3b8; }
 .form-control:disabled { background: #f1f5f9; color: #64748b; }
+
+.weekly-readiness, .weekly-readiness-summary { border: 1px solid #dbeafe; border-radius: .9rem; background: #f8fbff; padding: .9rem; }
+.volunteer-review-notice { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem; margin-top: 1rem; border: 1px solid #bae6fd; border-radius: .9rem; background: linear-gradient(120deg, #f8fdff, #e6f4fb); padding: .85rem 1rem; }
+.route-readiness-list { display: flex; flex-wrap: wrap; gap: .45rem .8rem; margin: .7rem 0 0; padding: 0; list-style: none; font-size: .82rem; color: #475569; }
+.route-readiness-list li { display: inline-flex; align-items: center; gap: .3rem; }
+.route-readiness-dot { width: .65rem; height: .65rem; border-radius: 999px; background: #94a3b8; box-shadow: 0 0 0 2px #e2e8f0; }
+.route-readiness-dot.is-confirmed { background: #22c55e; box-shadow: 0 0 0 2px #bbf7d0; }
+.print-week { margin-top: .15rem; }
+html.dark .weekly-readiness, html.dark .weekly-readiness-summary { border-color: #155e75; background: #102a3d; }
+html.dark .volunteer-review-notice { border-color: #155e75; background: linear-gradient(120deg, #102a3d, #0f172a); }
+html.dark .route-readiness-list { color: #cbd5e1; }
+html.dark .route-readiness-dot { box-shadow: 0 0 0 2px #334155; }
+html.dark .route-readiness-dot.is-confirmed { box-shadow: 0 0 0 2px #166534; }
+
+@media print {
+  @page { margin: 12mm; }
+  body.supply-printing { background: white !important; color: #111827 !important; }
+  body.supply-printing #root * { visibility: hidden !important; }
+  body.supply-printing .print-target, body.supply-printing .print-target * { visibility: visible !important; }
+  body.supply-printing .print-target { position: absolute; inset: 0; width: 100%; color: #111827 !important; background: white !important; }
+  body.supply-printing .print-control { display: none !important; }
+  body.supply-printing table { width: 100% !important; border-collapse: collapse !important; }
+  body.supply-printing th, body.supply-printing td { border: 1px solid #cbd5e1 !important; padding: 5px !important; color: #111827 !important; background: white !important; font-size: 10px !important; }
+  body.supply-printing th { background: #f1f5f9 !important; }
+  body.supply-printing tr { break-inside: avoid; }
+  body.supply-printing .weekly-readiness-summary { margin: .6rem 0; border-color: #cbd5e1; background: #f8fafc; }
+}

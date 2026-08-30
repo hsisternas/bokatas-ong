@@ -7,6 +7,7 @@ import {
   setDoc,
   where,
   collection,
+  deleteField,
 } from 'firebase/firestore';
 import { db, isFirebaseAuthConfigured } from './firebaseClient';
 import {
@@ -34,6 +35,9 @@ export interface RouteSupplyWeek {
   updatedBy?: string;
   updatedAt?: string;
   createdAt?: string;
+  confirmedAt?: string;
+  confirmedBy?: string;
+  confirmedDataUpdatedAt?: string;
 }
 
 export const ROUTE_IDS = [
@@ -95,6 +99,9 @@ const mapRouteSupplyWeek = (routeId: string, weekKey: string, data: any, baseFal
     updatedBy: typeof data?.updatedBy === 'string' ? data.updatedBy : undefined,
     updatedAt: typeof data?.updatedAt === 'string' ? data.updatedAt : undefined,
     createdAt: typeof data?.createdAt === 'string' ? data.createdAt : undefined,
+    confirmedAt: typeof data?.confirmedAt === 'string' ? data.confirmedAt : undefined,
+    confirmedBy: typeof data?.confirmedBy === 'string' ? data.confirmedBy : undefined,
+    confirmedDataUpdatedAt: typeof data?.confirmedDataUpdatedAt === 'string' ? data.confirmedDataUpdatedAt : undefined,
   };
 };
 
@@ -228,7 +235,7 @@ export const getRouteWeekState = async (routeId: string, weekKey: string): Promi
   }
 };
 
-export const saveRouteWeekState = async (state: RouteSupplyWeek, updatedBy: string): Promise<RouteSupplyWeek> => {
+export const saveRouteWeekState = async (state: RouteSupplyWeek, updatedBy: string, invalidateConfirmation = false): Promise<RouteSupplyWeek> => {
   if (!DEFAULT_ROUTES_CONFIG[state.routeId]) {
     throw new Error('invalid-route');
   }
@@ -248,7 +255,10 @@ export const saveRouteWeekState = async (state: RouteSupplyWeek, updatedBy: stri
   };
 
   try {
-    await setDoc(doc(db, 'routeSupplyWeeks', routeWeekDocId(state.routeId, state.weekKey)), normalizedState, { merge: true });
+    await setDoc(doc(db, 'routeSupplyWeeks', routeWeekDocId(state.routeId, state.weekKey)), {
+      ...normalizedState,
+      ...(invalidateConfirmation ? { confirmedAt: deleteField(), confirmedBy: deleteField(), confirmedDataUpdatedAt: deleteField() } : {}),
+    }, { merge: true });
     return normalizedState;
   } catch (error) {
     return toFirebaseError(error);
@@ -303,7 +313,8 @@ export const updateRouteWeekBase = async (
     base: normalizeSupplyValues(base),
     final: applyAdjustments(normalizeSupplyValues(base), current.adjustments),
   };
-  return saveRouteWeekState(nextState, updatedBy);
+  const changed = JSON.stringify(current.base) !== JSON.stringify(nextState.base);
+  return saveRouteWeekState(nextState, updatedBy, changed);
 };
 
 export const updateRouteWeekAdjustments = async (
@@ -319,5 +330,19 @@ export const updateRouteWeekAdjustments = async (
     adjustments: nextAdjustments,
     final: applyAdjustments(current.base, nextAdjustments),
   };
-  return saveRouteWeekState(nextState, updatedBy);
+  const changed = JSON.stringify(current.adjustments) !== JSON.stringify(nextAdjustments);
+  return saveRouteWeekState(nextState, updatedBy, changed);
+};
+
+export const confirmRouteWeek = async (routeId: string, weekKey: string, confirmedBy: string): Promise<RouteSupplyWeek> => {
+  const current = await getRouteWeekState(routeId, weekKey);
+  if (!isFirebaseAuthConfigured || !db) throw new Error('firebase-not-configured');
+  const now = new Date().toISOString();
+  const confirmed: RouteSupplyWeek = { ...current, confirmedAt: now, confirmedBy, confirmedDataUpdatedAt: current.updatedAt || current.createdAt || now };
+  try {
+    await setDoc(doc(db, 'routeSupplyWeeks', routeWeekDocId(routeId, weekKey)), confirmed, { merge: true });
+    return confirmed;
+  } catch (error) {
+    return toFirebaseError(error);
+  }
 };
