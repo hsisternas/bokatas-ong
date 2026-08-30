@@ -1,4 +1,4 @@
-import { collection, doc, getDoc, getDocs, orderBy, query, where } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import type { ResourceInput, ResourceRecord } from '../domain/resource';
 import { db, functions, isFirebaseAuthConfigured } from './firebaseClient';
@@ -44,6 +44,20 @@ export const getReviewResourceRecords = async (): Promise<ResourceRecord[]> => {
   requireFirebase();
   const result = await getDocs(query(collection(db!, 'resources'), where('status', 'in', ['pending_review', 'withdrawal_requested']), orderBy('submittedAt', 'asc')));
   return result.docs.map((item) => mapRecord(item.id, item.data()));
+};
+
+/** Lightweight live count for the volunteer review entry points. */
+export const subscribeToPendingReviewCount = (onCount: (count: number) => void): (() => void) => {
+  if (!db || !isFirebaseAuthConfigured) {
+    onCount(0);
+    return () => undefined;
+  }
+
+  return onSnapshot(
+    query(collection(db, 'resources'), where('status', 'in', ['pending_review', 'withdrawal_requested'])),
+    (snapshot) => onCount(snapshot.size),
+    () => onCount(0),
+  );
 };
 
 export const getResourceRecord = async (resourceId: string): Promise<ResourceRecord | null> => {

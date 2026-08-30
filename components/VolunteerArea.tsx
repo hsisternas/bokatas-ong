@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { Category, Resource } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 import VolunteerModules from './volunteer/VolunteerModules';
-import { getReviewResourceRecords } from '../services/canonicalResourceService';
+import { subscribeToPendingReviewCount } from '../services/canonicalResourceService';
 
 interface VolunteerAreaProps {
   volunteerName: string;
@@ -28,7 +28,7 @@ const VolunteerArea: React.FC<VolunteerAreaProps> = ({
   const { t } = useTranslation();
   const [reviewCount, setReviewCount] = useState(0);
   const [openReviewSignal, setOpenReviewSignal] = useState(0);
-  useEffect(() => { getReviewResourceRecords().then((items) => setReviewCount(items.length)).catch(() => setReviewCount(0)); }, []);
+  useEffect(() => subscribeToPendingReviewCount(setReviewCount), []);
 
   return (
     <div className="mx-auto w-full max-w-5xl rounded-2xl bg-white p-3 shadow-lg sm:p-6 dark:bg-gray-900">

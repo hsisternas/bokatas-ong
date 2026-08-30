@@ -5,7 +5,6 @@ import AddResourceModule from './AddResourceModule';
 import EditResourceModule from './EditResourceModule';
 import SuppliesModule from './supplies/SuppliesModule';
 import ReviewResourcesModule from './ReviewResourcesModule';
-import { getReviewResourceRecords } from '../../services/canonicalResourceService';
 
 interface VolunteerModulesProps {
   routeId: string;
@@ -60,8 +59,6 @@ const VolunteerModules: React.FC<VolunteerModulesProps> = ({
   }, []);
 
   useEffect(() => { if (openReviewSignal > 0) setActiveModule('review-resources'); }, [openReviewSignal]);
-  useEffect(() => { getReviewResourceRecords().then((items) => onReviewCountChange(items.length)).catch(() => undefined); }, [activeModule, onReviewCountChange]);
-
   return (
     <div>
       <div className="relative mb-4" ref={selectorRef}>

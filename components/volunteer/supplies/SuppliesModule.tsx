@@ -65,6 +65,7 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
   const [success, setSuccess] = useState<string | null>(null);
   const [base, setBase] = useState<SupplyValues>(createEmptySupplyValues());
   const [adjustments, setAdjustments] = useState<SupplyValues>(createEmptySupplyValues());
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [globalWeekStates, setGlobalWeekStates] = useState<Record<string, RouteSupplyWeek>>({});
   const [rules, setRules] = useState({
     breadSandwichesPerBar: 3,
@@ -91,6 +92,7 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
       ]);
       setBase(normalizeSupplyValues(myWeek.base));
       setAdjustments(normalizeSupplyValues(myWeek.adjustments));
+      setHasUnsavedChanges(false);
       setGlobalWeekStates(globalStates);
       setRules(supplyRules);
     } catch {
@@ -112,6 +114,7 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
   }, []);
 
   const changeAdjustmentByStep = (field: SupplyField, step: number) => {
+    setHasUnsavedChanges(true);
     setAdjustments((prev) => ({
       ...prev,
       [field]: prev[field] + step,
@@ -125,6 +128,7 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
     try {
       const updatedWeek = await updateRouteWeekAdjustments(routeId, weekKey, adjustments, userEmail);
       setAdjustments(updatedWeek.adjustments);
+      setHasUnsavedChanges(false);
       setGlobalWeekStates((prev) => ({ ...prev, [routeId]: updatedWeek }));
       setSuccess(updatedWeek.confirmedAt ? t('supplyWeekSaved') : 'Datos guardados. Confirma de nuevo la semana cuando estén listos.');
     } catch {
@@ -231,13 +235,14 @@ const SuppliesModule: React.FC<SuppliesModuleProps> = ({ routeId, userEmail }) =
           </button>
           <button
             onClick={handleConfirmWeek}
-            disabled={isConfirmingWeek || isSavingWeek || isLoading || isMyRouteConfirmed}
+            disabled={isConfirmingWeek || isSavingWeek || isLoading || hasUnsavedChanges || isMyRouteConfirmed}
             className="rounded-lg border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800 disabled:opacity-60 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
             type="button"
           >
             {isMyRouteConfirmed ? 'Datos de esta semana confirmados' : isConfirmingWeek ? t('loading') : 'Confirmar datos de esta semana'}
           </button>
         </div>
+        {hasUnsavedChanges && <p className="text-sm text-amber-700 dark:text-amber-300">Guarda los cambios antes de confirmar que la ruta está lista.</p>}
 
         <section className="weekly-readiness" aria-labelledby="weekly-readiness-title">
           <div><h3 id="weekly-readiness-title" className="font-semibold text-text-main">Estado de esta semana</h3><p className="text-sm text-text-light">{confirmedRouteIds.length} de {ROUTE_IDS.length} rutas preparadas</p></div>

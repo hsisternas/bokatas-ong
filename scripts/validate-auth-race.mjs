@@ -198,7 +198,9 @@ const validateViewport = async (name, pageOptions) => {
     await wait(300);
 
     const samples = await stopTextSampler(page);
-    const sawWrongRoute = samples.some((text) => text.includes('ruta-1') || text.includes('Ruta 1'));
+    // The weekly readiness panel deliberately lists every route. Only the signed-in
+    // route label must never briefly render as Ruta 1 during the auth transition.
+    const sawWrongRoute = samples.some((text) => /Sesi[oó]n iniciada como:\s*Ruta 1|Signed in as:\s*Ruta 1/.test(text));
     const finalText = await page.locator('body').innerText();
     const sawTargetRoute = finalText.includes(TARGET_USERNAME) || finalText.includes('Ruta 5');
 
