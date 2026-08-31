@@ -21,6 +21,7 @@ import { getRouteIdFromEmail, loginVolunteer } from './services/authService';
 import { isLegacyCatalogMigrated, getPublishedResourceRecords } from './services/canonicalResourceService';
 import { isVolunteerUser, logoutAuthenticatedUser, subscribeAuthUser } from './services/contributorAuthService';
 import { toPublicResource } from './domain/resource';
+import { syncNativeTheme } from './services/nativePlatform';
 import type { User } from 'firebase/auth';
 
 const getInitialView = (): View => window.location.pathname === '/hazte-voluntario'
@@ -101,6 +102,7 @@ const App: React.FC = () => {
     if (appleStatusBarMeta) {
       appleStatusBarMeta.setAttribute('content', theme === 'dark' ? 'black-translucent' : 'default');
     }
+    void syncNativeTheme(theme);
   }, [theme]);
 
   useEffect(() => {

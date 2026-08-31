@@ -71,7 +71,21 @@ La aplicación contiene el formulario y validación de esos datos mínimos, pero
 
 ## Siguiente fase móvil, no iniciada
 
-Capacitor sigue siendo la primera opción para empaquetar la SPA sin reescritura. Firebase web/Firestore y el compartir de archivos encajan conceptualmente; Google Sign-In, deep links, status bars/safe areas y permisos necesitarán configuración nativa. No se ha instalado Capacitor ni creado proyecto iOS/Android en esta iteración.
+Capacitor v8 es la opción elegida para empaquetar la SPA sin reescritura. En la rama `feat/mobile-app` se han creado los proyectos iOS y Android desde `bokatas-web-v1-final`, con identificador **temporal de desarrollo** `org.bokatas.mobile.dev`, `webDir: dist`, plugins App, Geolocation, Share y Status Bar. No representa un identificador definitivo ni se ha registrado en una tienda.
+
+- La ubicación sigue siendo contextual: el permiso nativo solo se solicita desde «Ver cerca de mí». iOS incluye la descripción de uso y Android declara permisos fino/grueso.
+- El tema de Bokatas sincroniza la barra de estado nativa; el Web SDK de Firebase, Firestore y Functions se mantienen por ahora.
+- `npm run mobile:sync` es correcto. El primer `./gradlew assembleDebug` no puede completarse en este equipo porque usa Java 26 (major 70), incompatible con el Groovy/Gradle instalado. Requiere JDK 21 antes de validar el APK. Xcode completo tampoco está instalado, por lo que no se ha generado un build iOS.
+- Google Sign-In y Sign in with Apple requieren configuración de Firebase/OAuth, App ID/Service ID, callbacks y claves del titular; no se han creado credenciales ni configurado secretos.
+- Los enlaces directos de categoría/recurso aún necesitan URLs canónicas antes de activar App links/Universal Links. La ruta pública `/hazte-voluntario` ya es estable.
+
+### Bloqueantes que requieren decisión institucional
+
+1. **Eliminación de cuenta.** Apple y Google exigen la iniciación de borrado desde la app; Google además exige URL pública. La cuenta y perfil pueden eliminarse de forma segura, pero Bokatas debe aprobar por escrito la política para recursos ya publicados: borrado, retirada o anonimización/desvinculación y conservación legal de trazas. No se ha ejecutado ni automatizado ninguna acción destructiva sin esa decisión.
+2. **UGC.** La moderación previa ya filtra las aportaciones antes de publicación. Antes de tienda queda añadir/validar un mecanismo de reporte de un recurso publicado y la política de suspensión/bloqueo de colaboradores; no se ha creado un sistema social innecesario.
+3. **Sign in with Apple.** La guideline 4.8 de Apple debe resolverse si se conserva Google como login social principal en iOS. Requiere cuenta Apple Developer de Bokatas y configuración Firebase, no solo código.
+
+Fuentes verificadas el 31 de agosto de 2026: [Apple App Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), [Apple account deletion](https://developer.apple.com/support/offering-account-deletion-in-your-app/), [Google account deletion](https://support.google.com/googleplay/android-developer/answer/13327111?hl=en), [Google UGC](https://support.google.com/googleplay/android-developer/answer/9876937?hl=en), [Google testing personal accounts](https://support.google.com/googleplay/android-developer/answer/14151465?hl=en), [Capacitor](https://capacitorjs.com/docs/getting-started).
 
 ## Cuentas y costes oficiales
 
