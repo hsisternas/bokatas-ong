@@ -40,7 +40,7 @@ const verifyDirectLogin = async (name, contextOptions) => {
   try {
     await installMocks(page); await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
     await page.getByRole('button', { name: 'Abrir menú' }).click();
-    await page.getByRole('dialog', { name: 'Menú principal' }).getByRole('button', { name: 'Aporta un recurso' }).click();
+    await page.getByRole('dialog', { name: 'Menú principal' }).getByRole('button', { name: /Añádelo a Bokatas/i }).click();
     await page.locator('input[type="email"]').fill('qa@example.org'); await page.locator('input[type="password"]').fill('temporary-password');
     await page.getByRole('button', { name: 'Entrar' }).click();
     await page.getByRole('heading', { name: 'Añade un recurso' }).waitFor({ timeout: 5000 });

@@ -49,16 +49,18 @@ const verifyPublicNavigation = async (name, contextOptions) => {
     if (await page.evaluate(() => window.__geoRequests) !== 0) throw new Error(`${name}: geolocation was requested on app start`);
     await page.locator('button[aria-label="Abrir menú"]').click();
     const dialog = page.getByRole('dialog', { name: 'Menú principal' });
-    await dialog.getByRole('button', { name: 'Aporta un recurso' }).waitFor();
+    const contributionCallout = dialog.getByRole('complementary', { name: 'Aporta un recurso' });
+    await contributionCallout.getByRole('button', { name: /Añádelo a Bokatas/i }).waitFor();
     if (await dialog.getByRole('button', { name: 'Mi cuenta' }).count()) throw new Error(`${name}: public menu must not show a redundant account action`);
-    for (const label of ['Aporta un recurso', 'Acceso voluntarios', 'Hazte voluntario']) {
+    if (await dialog.getByRole('button', { name: /Añádelo a Bokatas/i }).count() !== 1) throw new Error(`${name}: public menu must have exactly one contribution CTA`);
+    for (const label of ['Acceso voluntarios', 'Hazte voluntario']) {
       if (!(await dialog.getByRole('button', { name: label }).count())) throw new Error(`${name}: menu is missing ${label}`);
     }
     const overflow = await page.evaluate(() => document.body.style.overflow);
     if (overflow !== 'hidden') throw new Error(`${name}: menu did not lock background scroll`);
     if (await page.evaluate(() => document.activeElement?.getAttribute('aria-label')) !== 'Cerrar menú') throw new Error(`${name}: menu did not move focus to its close control`);
     await page.keyboard.press('Shift+Tab');
-    if (!(await page.evaluate(() => document.activeElement?.textContent?.includes('Añádelo a Bokatas')))) throw new Error(`${name}: menu does not trap reverse keyboard focus`);
+    if (!(await page.evaluate(() => document.activeElement?.textContent?.includes('Hazte voluntario')))) throw new Error(`${name}: menu does not trap reverse keyboard focus`);
     await page.keyboard.press('Tab');
     if (await page.evaluate(() => document.activeElement?.getAttribute('aria-label')) !== 'Cerrar menú') throw new Error(`${name}: menu does not trap forward keyboard focus`);
     await page.keyboard.press('Escape');
