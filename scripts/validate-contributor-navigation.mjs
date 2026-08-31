@@ -25,7 +25,8 @@ const verify = async (name, contextOptions) => {
     await page.getByLabel('Tu nombre').fill('QA'); await page.locator('input[type="email"]').fill('qa@example.org'); await page.locator('input[type="password"]').fill('temporary-password');
     await page.getByRole('button', { name: 'Crear cuenta' }).first().click();
     try { await page.getByRole('heading', { name: 'Añade un recurso' }).waitFor({ timeout: 5000 }); } catch (error) { throw new Error(`${name}: add intent did not navigate\n${await page.locator('body').innerText()}\n${error}`); }
-    await page.getByRole('button', { name: /Mis recursos/i }).first().click();
+    await page.getByRole('button', { name: 'Abrir menú' }).click();
+    await page.getByRole('dialog', { name: 'Menú principal' }).getByRole('button', { name: /Mis recursos/i }).click();
     await page.getByRole('heading', { name: 'Mis recursos' }).last().waitFor({ timeout: 5000 });
     console.log(`[ok] ${name}: signup preserves the add-resource intent and account navigation is visible.`);
   } finally { await browser.close(); }
@@ -35,7 +36,8 @@ const verifyDirectLogin = async (name, contextOptions) => {
   const browser = await chromium.launch({ headless: true }); const context = await browser.newContext(contextOptions); const page = await context.newPage();
   try {
     await installMocks(page); await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-    await page.getByRole('button', { name: 'Mi cuenta' }).first().click();
+    await page.getByRole('button', { name: 'Abrir menú' }).click();
+    await page.getByRole('dialog', { name: 'Menú principal' }).getByRole('button', { name: 'Mi cuenta' }).click();
     await page.locator('input[type="email"]').fill('qa@example.org'); await page.locator('input[type="password"]').fill('temporary-password');
     await page.getByRole('button', { name: 'Entrar' }).click();
     await page.getByRole('heading', { name: 'Mis recursos' }).last().waitFor({ timeout: 5000 });

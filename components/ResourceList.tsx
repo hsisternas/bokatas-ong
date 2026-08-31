@@ -26,6 +26,9 @@ interface ResourceListProps {
   resources: Resource[];
   onSelectResource: (resource: Resource) => void;
   userLocation: Geolocation;
+  onRequestLocation: () => void;
+  locationError: { key: string; message?: string } | null;
+  isLocationLoading: boolean;
   onContribute?: () => void;
 }
 
@@ -48,7 +51,7 @@ const ResourceCard: React.FC<{ resource: Resource, distance: number | null, onSe
   );
 };
 
-const ResourceList: React.FC<ResourceListProps> = ({ category, resources, onSelectResource, userLocation, onContribute }) => {
+const ResourceList: React.FC<ResourceListProps> = ({ category, resources, onSelectResource, userLocation, onRequestLocation, locationError, isLocationLoading, onContribute }) => {
   const { t } = useTranslation();
   
   const filteredAndSortedResources = useMemo(() => {
@@ -94,6 +97,21 @@ const ResourceList: React.FC<ResourceListProps> = ({ category, resources, onSele
   return (
     <div className="flex flex-col h-full">
       <div className="mb-3 flex justify-end">{onContribute && <button className="button-secondary text-sm" onClick={onContribute}>+ Añade un recurso</button>}</div>
+      {!userLocation && (
+        <div className="location-callout mb-4" role={locationError ? 'status' : undefined}>
+          <div>
+            <p className="font-bold text-text-main">¿Quieres ver qué recursos te quedan más cerca?</p>
+            <p className="mt-1 text-sm text-text-light">Usaremos tu ubicación solo en este dispositivo para ordenar el listado.</p>
+          </div>
+          {locationError ? (
+            <p className="text-sm text-text-light">Seguimos mostrando todos los recursos. Puedes continuar sin compartir tu ubicación.</p>
+          ) : (
+            <button className="button-secondary whitespace-nowrap" type="button" onClick={onRequestLocation} disabled={isLocationLoading}>
+              {isLocationLoading ? 'Buscando ubicación…' : 'Ver cerca de mí'}
+            </button>
+          )}
+        </div>
+      )}
       {resourcesWithCoords.length > 0 && (
         <div className="mb-4 rounded-lg overflow-hidden shadow-md">
           <Map 

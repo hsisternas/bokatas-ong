@@ -155,7 +155,9 @@ const validateViewport = async (name, pageOptions) => {
     await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
     await page.waitForTimeout(1500);
 
-    const accessButton = page.getByRole('button', { name: /Acceso voluntariado|Volunteer Access|volunt/i });
+    await page.getByRole('button', { name: 'Abrir menú' }).click();
+    const menu = page.getByRole('dialog', { name: 'Menú principal' });
+    const accessButton = menu.getByRole('button', { name: /Acceso voluntarios|Volunteer Access/i });
     const accessButtonCount = await accessButton.count();
     if (accessButtonCount === 0) {
       const bodyText = await page.locator('body').innerText();
@@ -164,7 +166,7 @@ const validateViewport = async (name, pageOptions) => {
 
     await page.waitForFunction(() => {
       const buttons = Array.from(document.querySelectorAll('button'));
-      return buttons.some((button) => /volunt/i.test(button.innerText) && !button.hasAttribute('disabled'));
+      return buttons.some((button) => /Acceso voluntarios/i.test(button.innerText) && !button.hasAttribute('disabled'));
     }, { timeout: 15000 });
 
     await accessButton.first().click();
@@ -216,7 +218,7 @@ const validateViewport = async (name, pageOptions) => {
     await page.waitForFunction(
       (expectedEmail) => {
         const text = document.body.innerText;
-        return (text.includes('Voluntariado') || text.includes('Volunteer access')) && !text.includes(expectedEmail);
+        return !text.includes(expectedEmail) && document.querySelector('button[aria-label="Abrir menú"]') !== null;
       },
       TARGET_USERNAME,
       { timeout: 5000 }

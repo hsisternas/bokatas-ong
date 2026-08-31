@@ -117,6 +117,55 @@ html.dark .hover\:bg-gray-100:hover {
 .footer-surface button:hover { color: #176c9b; }
 .footer-divider { color: #94a3b8; }
 
+.mobile-menu {
+  position: fixed;
+  z-index: 60;
+  inset: 0;
+  display: flex;
+  min-height: 100dvh;
+  flex-direction: column;
+  overflow-y: auto;
+  background: linear-gradient(145deg, #fff 0%, #f0f9ff 100%);
+  color: #1e293b;
+}
+.mobile-menu__bar {
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgb(186 230 253 / .9);
+  padding: .5rem 1rem;
+}
+.mobile-menu__close { min-width: 2.75rem; min-height: 2.75rem; }
+.mobile-menu__content { display: grid; gap: 2rem; padding: 2rem 1.25rem calc(env(safe-area-inset-bottom) + 2rem); }
+.mobile-menu__group { border-top: 1px solid #bae6fd; padding-top: 1.5rem; }
+.mobile-menu__label { margin: 0 0 .6rem; color: #176c9b; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+.mobile-menu__item {
+  display: flex;
+  width: 100%;
+  min-height: 4.6rem;
+  flex-direction: column;
+  justify-content: center;
+  border: 0;
+  border-radius: .9rem;
+  background: transparent;
+  color: #1e293b;
+  padding: .7rem .8rem;
+  text-align: start;
+}
+.mobile-menu__item + .mobile-menu__item { margin-top: .3rem; }
+.mobile-menu__item:hover, .mobile-menu__item:focus-visible { background: #e6f4fb; outline: none; }
+.mobile-menu__item:focus-visible { box-shadow: 0 0 0 3px #2aa7df; }
+.mobile-menu__item span { font-size: 1.1rem; font-weight: 800; }
+.mobile-menu__item small { margin-top: .18rem; color: #64748b; font-size: .86rem; line-height: 1.3; }
+
+.location-callout { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .85rem; border: 1px solid #bae6fd; border-radius: .9rem; background: #f0f9ff; padding: .85rem 1rem; }
+.volunteer-signup-hero { border: 1px solid #bae6fd; border-radius: 1.1rem; background: linear-gradient(135deg, #fff 0%, #f0f9ff 100%); padding: 1.5rem; }
+.volunteer-steps { display: grid; gap: .85rem; margin: 0; padding: 0; list-style: none; }
+.volunteer-steps li { display: flex; align-items: center; gap: .75rem; color: #475569; }
+.volunteer-steps strong { display: inline-grid; width: 1.75rem; height: 1.75rem; flex: 0 0 auto; place-items: center; border-radius: 999px; background: #e6f4fb; color: #176c9b; }
+.volunteer-form-notice { border: 1px solid #fcd34d; border-radius: .8rem; background: #fffbeb; color: #78350f; padding: .9rem 1rem; }
+
 .form-label { display: block; color: #334155; font-size: .875rem; font-weight: 700; }
 .form-control { display: block; width: 100%; margin-top: .35rem; border: 1px solid #cbd5e1; border-radius: .75rem; background: white; color: #1e293b; padding: .65rem .8rem; font: inherit; }
 .form-control:focus { outline: 2px solid #2aa7df; outline-offset: 1px; border-color: #2aa7df; }
@@ -143,6 +192,17 @@ html.dark .footer-surface { border-color: #263548; background: #0d1726; }
 html.dark .footer-label, html.dark .footer-link, html.dark .footer-surface button { color: #cbd5e1; }
 html.dark .footer-surface button:hover { color: #7dd3fc; }
 html.dark .footer-divider { color: #64748b; }
+html.dark .mobile-menu { background: linear-gradient(145deg, #0b1220 0%, #102a3d 100%); color: #f3f4f6; }
+html.dark .mobile-menu__bar, html.dark .mobile-menu__group { border-color: #155e75; }
+html.dark .mobile-menu__label { color: #7dd3fc; }
+html.dark .mobile-menu__item { color: #f3f4f6; }
+html.dark .mobile-menu__item:hover, html.dark .mobile-menu__item:focus-visible { background: #10354d; }
+html.dark .mobile-menu__item small { color: #cbd5e1; }
+html.dark .location-callout { border-color: #155e75; background: #102a3d; }
+html.dark .volunteer-signup-hero { border-color: #155e75; background: linear-gradient(135deg, #111827 0%, #102a3d 100%); }
+html.dark .volunteer-steps li { color: #cbd5e1; }
+html.dark .volunteer-steps strong { background: #10354d; color: #7dd3fc; }
+html.dark .volunteer-form-notice { border-color: #854d0e; background: #422006; color: #fde68a; }
 html.dark .form-control:disabled { background: #1f2937; color: #94a3b8; }
 .form-control:disabled { background: #f1f5f9; color: #64748b; }
 

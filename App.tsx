@@ -9,6 +9,8 @@ import VolunteerArea from './components/VolunteerArea';
 import VolunteerLoginModal from './components/VolunteerLoginModal';
 import ContributorAuthModal from './components/contributor/ContributorAuthModal';
 import ContributorArea from './components/contributor/ContributorArea';
+import VolunteerSignupPage from './components/VolunteerSignupPage';
+import MobileNavigationMenu from './components/MobileNavigationMenu';
 import Header from './components/Header';
 import LanguageSelector from './components/LanguageSelector';
 import ThemeToggle from './components/ThemeToggle';
@@ -21,8 +23,12 @@ import { isVolunteerUser, logoutAuthenticatedUser, subscribeAuthUser } from './s
 import { toPublicResource } from './domain/resource';
 import type { User } from 'firebase/auth';
 
+const getInitialView = (): View => window.location.pathname === '/hazte-voluntario'
+  ? { type: 'volunteer-signup' }
+  : { type: 'categories' };
+
 const App: React.FC = () => {
-  const [view, setView] = useState<View>({ type: 'categories' });
+  const [view, setView] = useState<View>(getInitialView);
   const [categories, setCategories] = useState<Category[]>([]);
   const [resources, setResources] = useState<Resource[]>([]);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -34,9 +40,10 @@ const App: React.FC = () => {
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [contributorScreen, setContributorScreen] = useState<'list' | 'create'>('list');
   const [pendingContributorIntent, setPendingContributorIntent] = useState<'list' | 'create' | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isVolunteerAccessPendingRef = useRef(false);
   
-  const { location, requestLocation } = useGeolocation();
+  const { location, error: locationError, loading: isLocationLoading, requestLocation } = useGeolocation();
   const { t, locale } = useTranslation();
 
   useEffect(() => {
@@ -59,9 +66,14 @@ const App: React.FC = () => {
         // Keep base resources available even if Firestore fails.
       });
 
-    requestLocation();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
+
+  useEffect(() => {
+    const handlePopState = () => setView(getInitialView());
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme');
@@ -133,7 +145,13 @@ const App: React.FC = () => {
   };
 
   const navigateToHome = () => {
+    if (window.location.pathname !== '/') window.history.pushState({}, '', '/');
     setView({ type: 'categories' });
+  };
+
+  const navigateToVolunteerSignup = () => {
+    if (window.location.pathname !== '/hazte-voluntario') window.history.pushState({}, '', '/hazte-voluntario');
+    setView({ type: 'volunteer-signup' });
   };
 
   const toggleTheme = () => {
@@ -152,6 +170,8 @@ const App: React.FC = () => {
       }
     } else if (view.type === 'list') {
       setView({ type: 'categories' });
+    } else if (view.type === 'volunteer-signup') {
+      navigateToHome();
     }
   };
 
@@ -160,7 +180,7 @@ const App: React.FC = () => {
       case 'categories':
         return <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} onContribute={openContribution} />;
       case 'list':
-        return <ResourceList category={view.category} resources={resources} onSelectResource={navigateToDetail} userLocation={location} onContribute={openContribution} />;
+        return <ResourceList category={view.category} resources={resources} onSelectResource={navigateToDetail} userLocation={location} onRequestLocation={requestLocation} locationError={locationError} isLocationLoading={isLocationLoading} onContribute={openContribution} />;
       case 'detail':
         return <ResourceDetail resource={view.resource} />;
       case 'volunteer':
@@ -187,6 +207,8 @@ const App: React.FC = () => {
         return authUser && !isVolunteerUser(authUser)
           ? <ContributorArea user={authUser} categories={categories} initialScreen={contributorScreen} onLogout={handleContributorLogout} />
           : <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} onContribute={openContribution} />;
+      case 'volunteer-signup':
+        return <VolunteerSignupPage />;
       default:
         return <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} />;
     }
@@ -204,6 +226,8 @@ const App: React.FC = () => {
         return t('volunteerArea');
       case 'contributor':
         return 'Mis recursos';
+      case 'volunteer-signup':
+        return 'Hazte voluntario';
     }
   };
 
@@ -287,7 +311,7 @@ const App: React.FC = () => {
     setResources((prev) => prev.map((resource) => (resource.id === updated.id ? updated : resource)));
   };
   
-  const showBackButton = view.type === 'list' || view.type === 'detail' || view.type === 'volunteer' || view.type === 'contributor';
+  const showBackButton = view.type === 'list' || view.type === 'detail' || view.type === 'volunteer' || view.type === 'contributor' || view.type === 'volunteer-signup';
   const showHomeButton = view.type !== 'categories';
   const volunteerRouteId = getRouteIdFromEmail(authUser?.email || null);
 
@@ -295,9 +319,11 @@ const App: React.FC = () => {
     <div className="min-h-screen bg-background text-text-main flex flex-col font-sans">
       <Header title={getTitle()} showBackButton={showBackButton} onBack={navigateBack}>
         <div className="flex items-center gap-1">
-          {!authUser || !isVolunteerUser(authUser) ? <button className="account-nav" onClick={openContributorArea} aria-label={authUser ? 'Mis recursos' : 'Acceder a mi cuenta'}><span className="material-symbols-outlined" aria-hidden="true">person</span><span className="hidden sm:inline">{authUser ? 'Mis recursos' : 'Mi cuenta'}</span></button> : null}
-          <ThemeToggle isDark={theme === 'dark'} onToggle={toggleTheme} />
           <LanguageSelector />
+          <ThemeToggle isDark={theme === 'dark'} onToggle={toggleTheme} />
+          <button className="icon-button" type="button" onClick={() => setIsMobileMenuOpen(true)} aria-label="Abrir menú" aria-expanded={isMobileMenuOpen} aria-haspopup="dialog">
+            <span className="material-symbols-outlined" aria-hidden="true">menu</span>
+          </button>
         </div>
       </Header>
       
@@ -306,16 +332,12 @@ const App: React.FC = () => {
       </main>
 
       <footer className="footer-surface safe-bottom mt-auto w-full px-6 py-3">
-        <nav className="container mx-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs" aria-label="Participación">
-          <span className="footer-label">Participa</span>
-          <button
-            onClick={openVolunteerAccess}
-            disabled={!isAuthResolved || isAuthLoading}
-            className="text-xs text-text-light underline-offset-2 hover:text-primary hover:underline"
-          >
-            {authUser && isVolunteerUser(authUser) ? t('volunteerArea') : 'Voluntariado'}
-          </button>
-          {!authUser || !isVolunteerUser(authUser) ? <><span className="footer-divider" aria-hidden="true">·</span><button onClick={openContributorArea} className="footer-link">{authUser ? 'Mis recursos' : 'Mi cuenta'}</button></> : null}
+        <nav className="container mx-auto flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs" aria-label="Información de Bokatas">
+          <a className="footer-link" href="https://bokatas.org/" target="_blank" rel="noreferrer">Bokatas.org</a>
+          <span className="footer-divider" aria-hidden="true">·</span>
+          <a className="footer-link" href="https://bokatas.org/politica-de-privacidad/" target="_blank" rel="noreferrer">Privacidad</a>
+          <span className="footer-divider" aria-hidden="true">·</span>
+          <a className="footer-link" href="mailto:info@bokatas.org">Contacto</a>
         </nav>
       </footer>
 
@@ -337,6 +359,15 @@ const App: React.FC = () => {
         onLogin={handleVolunteerLogin}
       />
       <ContributorAuthModal open={isContributorAuthOpen} intent={pendingContributorIntent} onClose={() => setIsContributorAuthOpen(false)} onDismiss={() => { setIsContributorAuthOpen(false); setPendingContributorIntent(null); }} />
+      <MobileNavigationMenu
+        open={isMobileMenuOpen}
+        sessionKind={authUser && isVolunteerUser(authUser) ? 'volunteer' : authUser ? 'contributor' : 'public'}
+        onClose={() => setIsMobileMenuOpen(false)}
+        onAccount={openContributorArea}
+        onAddResource={openContribution}
+        onVolunteerAccess={openVolunteerAccess}
+        onVolunteerSignup={navigateToVolunteerSignup}
+      />
     </div>
   );
 };
