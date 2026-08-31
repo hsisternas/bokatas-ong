@@ -96,7 +96,6 @@ const ResourceList: React.FC<ResourceListProps> = ({ category, resources, onSele
 
   return (
     <div className="flex flex-col h-full">
-      <div className="mb-3 flex justify-end">{onContribute && <button className="button-secondary text-sm" onClick={onContribute}>+ Añade un recurso</button>}</div>
       {!userLocation && (
         <div className="location-callout mb-4" role={locationError ? 'status' : undefined}>
           <div>
@@ -122,6 +121,13 @@ const ResourceList: React.FC<ResourceListProps> = ({ category, resources, onSele
           />
         </div>
       )}
+      {onContribute && <section className="resource-contribute-callout mb-4" aria-label="Añadir un recurso">
+        <div>
+          <p className="font-bold text-text-main">¿Conoces otro recurso que pueda ayudar?</p>
+          <p className="mt-1 text-sm text-text-light">Compártelo con Bokatas para que podamos revisarlo.</p>
+        </div>
+        <button className="button-secondary whitespace-nowrap" type="button" onClick={onContribute}>Añadir un recurso</button>
+      </section>}
       <div className="space-y-4">
         {filteredAndSortedResources.map(resource => (
           <ResourceCard

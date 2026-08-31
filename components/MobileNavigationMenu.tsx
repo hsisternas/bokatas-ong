@@ -72,7 +72,7 @@ const MobileNavigationMenu: React.FC<MobileNavigationMenuProps> = ({
   };
 
   const isVolunteer = sessionKind === 'volunteer';
-  const accountTitle = sessionKind === 'contributor' ? 'Mis recursos' : 'Mi cuenta';
+  const isContributor = sessionKind === 'contributor';
 
   return (
     <div
@@ -93,28 +93,34 @@ const MobileNavigationMenu: React.FC<MobileNavigationMenuProps> = ({
         {!isVolunteer && (
           <section aria-labelledby="menu-contribute-title">
             <p id="menu-contribute-title" className="mobile-menu__label">Colabora con información</p>
-            <button type="button" className="mobile-menu__item" onClick={() => navigate(onAccount)}>
-              <span>{accountTitle}</span>
-              <small>{sessionKind === 'contributor' ? 'Consulta y gestiona tus recursos' : 'Gestiona tus recursos'}</small>
-            </button>
+            {isContributor && <button type="button" className="mobile-menu__item" onClick={() => navigate(onAccount)}>
+              <span>Mis recursos</span>
+              <small>Consulta y gestiona tus recursos</small>
+            </button>}
             <button type="button" className="mobile-menu__item" onClick={() => navigate(onAddResource)}>
-              <span>Añadir un recurso</span>
-              <small>Comparte un recurso para que podamos revisarlo</small>
+              <span>{isContributor ? 'Añadir un recurso' : 'Aporta un recurso'}</span>
+              <small>{isContributor ? 'Comparte un recurso para que podamos revisarlo' : 'Crea una cuenta o accede para compartir información útil'}</small>
             </button>
           </section>
         )}
 
-        <section className="mobile-menu__group" aria-labelledby="menu-bokatas-title">
+        <section className={isVolunteer ? undefined : 'mobile-menu__group'} aria-labelledby="menu-bokatas-title">
           <p id="menu-bokatas-title" className="mobile-menu__label">Bokatas</p>
-          <button type="button" className="mobile-menu__item" onClick={() => navigate(onVolunteerAccess)}>
+          {!isContributor && <button type="button" className="mobile-menu__item" onClick={() => navigate(onVolunteerAccess)}>
             <span>{isVolunteer ? 'Área de voluntariado' : 'Acceso voluntarios'}</span>
             <small>{isVolunteer ? 'Vuelve a tu área interna' : 'Para personas que ya forman parte de Bokatas'}</small>
-          </button>
+          </button>}
           <button type="button" className="mobile-menu__item" onClick={() => navigate(onVolunteerSignup)}>
             <span>Hazte voluntario</span>
             <small>Conoce cómo acompañar con Bokatas</small>
           </button>
         </section>
+
+        {!isVolunteer && <aside className="mobile-menu__cta" aria-label="Aporta un recurso">
+          <p className="eyebrow">Colabora</p>
+          <p className="mt-1 font-bold text-text-main">¿Conoces un recurso que pueda ayudar?</p>
+          <button type="button" className="link-button mt-2" onClick={() => navigate(onAddResource)}>Añádelo a Bokatas <span aria-hidden="true">→</span></button>
+        </aside>}
       </nav>
     </div>
   );

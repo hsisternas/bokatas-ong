@@ -49,15 +49,16 @@ const verifyPublicNavigation = async (name, contextOptions) => {
     if (await page.evaluate(() => window.__geoRequests) !== 0) throw new Error(`${name}: geolocation was requested on app start`);
     await page.locator('button[aria-label="Abrir menú"]').click();
     const dialog = page.getByRole('dialog', { name: 'Menú principal' });
-    await dialog.getByRole('button', { name: 'Mi cuenta' }).waitFor();
-    for (const label of ['Añadir un recurso', 'Acceso voluntarios', 'Hazte voluntario']) {
+    await dialog.getByRole('button', { name: 'Aporta un recurso' }).waitFor();
+    if (await dialog.getByRole('button', { name: 'Mi cuenta' }).count()) throw new Error(`${name}: public menu must not show a redundant account action`);
+    for (const label of ['Aporta un recurso', 'Acceso voluntarios', 'Hazte voluntario']) {
       if (!(await dialog.getByRole('button', { name: label }).count())) throw new Error(`${name}: menu is missing ${label}`);
     }
     const overflow = await page.evaluate(() => document.body.style.overflow);
     if (overflow !== 'hidden') throw new Error(`${name}: menu did not lock background scroll`);
     if (await page.evaluate(() => document.activeElement?.getAttribute('aria-label')) !== 'Cerrar menú') throw new Error(`${name}: menu did not move focus to its close control`);
     await page.keyboard.press('Shift+Tab');
-    if (!(await page.evaluate(() => document.activeElement?.textContent?.includes('Hazte voluntario')))) throw new Error(`${name}: menu does not trap reverse keyboard focus`);
+    if (!(await page.evaluate(() => document.activeElement?.textContent?.includes('Añádelo a Bokatas')))) throw new Error(`${name}: menu does not trap reverse keyboard focus`);
     await page.keyboard.press('Tab');
     if (await page.evaluate(() => document.activeElement?.getAttribute('aria-label')) !== 'Cerrar menú') throw new Error(`${name}: menu does not trap forward keyboard focus`);
     await page.keyboard.press('Escape');
@@ -77,6 +78,8 @@ const verifyPublicNavigation = async (name, contextOptions) => {
     await page.getByLabel('Volver').click();
     await page.getByText('Primeros Pasos', { exact: true }).first().click();
     if (await page.evaluate(() => window.__geoRequests) !== 0) throw new Error(`${name}: geolocation was requested on entering a category`);
+    const order = await page.evaluate(() => [document.querySelector('.location-callout'), document.querySelector('[data-testid="map"]'), document.querySelector('.resource-contribute-callout')].map((element) => element?.getBoundingClientRect().top));
+    if (!(order[0] < order[1] && order[1] < order[2])) throw new Error(`${name}: category order must be location, map, contribution CTA, list`);
     await page.getByRole('button', { name: 'Ver cerca de mí' }).click();
     if (await page.evaluate(() => window.__geoRequests) !== 1) throw new Error(`${name}: geolocation was not requested by the explicit action`);
     console.log(`[ok] ${name}: public menu, volunteer route and contextual geolocation.`);
