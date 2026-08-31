@@ -93,14 +93,19 @@ const MobileNavigationMenu: React.FC<MobileNavigationMenuProps> = ({
         {!isVolunteer && (
           <section aria-labelledby="menu-contribute-title">
             <p id="menu-contribute-title" className="mobile-menu__label">Colabora con información</p>
-            {isContributor && <button type="button" className="mobile-menu__item" onClick={() => navigate(onAccount)}>
-              <span>Mis recursos</span>
-              <small>Consulta y gestiona tus recursos</small>
-            </button>}
-            <button type="button" className="mobile-menu__item" onClick={() => navigate(onAddResource)}>
-              <span>{isContributor ? 'Añadir un recurso' : 'Aporta un recurso'}</span>
-              <small>{isContributor ? 'Comparte un recurso para que podamos revisarlo' : 'Crea una cuenta o accede para compartir información útil'}</small>
-            </button>
+            {isContributor ? <>
+              <button type="button" className="mobile-menu__item" onClick={() => navigate(onAccount)}>
+                <span>Mis recursos</span>
+                <small>Consulta y gestiona tus recursos</small>
+              </button>
+              <button type="button" className="mobile-menu__item" onClick={() => navigate(onAddResource)}>
+                <span>Añadir un recurso</span>
+                <small>Comparte un recurso para que podamos revisarlo</small>
+              </button>
+            </> : <aside className="mobile-menu__cta" aria-label="Aporta un recurso">
+              <p className="font-bold text-text-main">¿Conoces un recurso que pueda ayudar?</p>
+              <button type="button" className="link-button mt-2" onClick={() => navigate(onAddResource)}>Añádelo a Bokatas <span aria-hidden="true">→</span></button>
+            </aside>}
           </section>
         )}
 
@@ -116,11 +121,6 @@ const MobileNavigationMenu: React.FC<MobileNavigationMenuProps> = ({
           </button>
         </section>
 
-        {!isVolunteer && <aside className="mobile-menu__cta" aria-label="Aporta un recurso">
-          <p className="eyebrow">Colabora</p>
-          <p className="mt-1 font-bold text-text-main">¿Conoces un recurso que pueda ayudar?</p>
-          <button type="button" className="link-button mt-2" onClick={() => navigate(onAddResource)}>Añádelo a Bokatas <span aria-hidden="true">→</span></button>
-        </aside>}
       </nav>
     </div>
   );
