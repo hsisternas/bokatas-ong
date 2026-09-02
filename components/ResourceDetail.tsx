@@ -2,6 +2,7 @@ import React from 'react';
 import type { Resource, Geolocation } from '../types';
 import { useTranslation } from '../contexts/LanguageContext';
 import Map from './Map';
+import { reportResourceProblem } from '../services/canonicalResourceService';
 
 interface ResourceDetailProps {
   resource: Resource;
@@ -9,6 +10,10 @@ interface ResourceDetailProps {
 
 const ResourceDetail: React.FC<ResourceDetailProps> = ({ resource }) => {
   const { locale, t } = useTranslation();
+  const [reportOpen, setReportOpen] = React.useState(false);
+  const [reportReason, setReportReason] = React.useState('incorrect');
+  const [reportDetails, setReportDetails] = React.useState('');
+  const [reportState, setReportState] = React.useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
   const hasCoordinates = resource.coordinates && resource.coordinates.lat !== 0;
 
@@ -83,6 +88,10 @@ const ResourceDetail: React.FC<ResourceDetailProps> = ({ resource }) => {
                </div>
              </div>
            )}
+          <section className="mt-8 border-t border-gray-200 pt-5 dark:border-gray-700">
+            <button className="link-button text-sm" type="button" onClick={() => setReportOpen((open) => !open)}>¿Hay algún problema con este recurso?</button>
+            {reportOpen && <form className="mt-3 space-y-3 rounded-xl bg-secondary/50 p-3" onSubmit={async (event) => { event.preventDefault(); setReportState('sending'); try { await reportResourceProblem(resource.id, resource.name[locale], reportReason, reportDetails); setReportState('sent'); setReportDetails(''); } catch { setReportState('error'); } }}><label className="form-label">Motivo<select className="form-control" value={reportReason} onChange={(event) => setReportReason(event.target.value)}><option value="incorrect">La información es incorrecta</option><option value="closed">El recurso ha cerrado o no está disponible</option><option value="safety">Puede haber un problema de seguridad</option><option value="other">Otro problema</option></select></label><label className="form-label">Cuéntanos qué ocurre <span className="font-normal">(opcional)</span><textarea className="form-control" rows={3} value={reportDetails} onChange={(event) => setReportDetails(event.target.value)} maxLength={1200} /></label>{reportState === 'sent' && <p className="text-sm text-primary-dark" role="status">Gracias. Bokatas revisará la información.</p>}{reportState === 'error' && <p className="text-sm text-red-700" role="alert">No se pudo enviar el aviso. Inténtalo de nuevo o contacta con Bokatas.</p>}<button className="button-secondary" disabled={reportState === 'sending'}>{reportState === 'sending' ? 'Enviando…' : 'Enviar aviso'}</button></form>}
+          </section>
         </div>
       </div>
     </div>

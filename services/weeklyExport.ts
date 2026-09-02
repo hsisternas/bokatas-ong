@@ -1,4 +1,7 @@
 import type { SupplyField, SupplyValues } from './supplyCalculations';
+import { Capacitor } from '@capacitor/core';
+import { Directory, Filesystem } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
 
 export interface ExportRow {
   label: string;
@@ -135,13 +138,55 @@ export const exportDocumentToPng = async (exportData: WeeklyExportDocument): Pro
   } finally { URL.revokeObjectURL(url); }
 };
 
+const blobToBase64 = async (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onerror = () => reject(new Error('No se ha podido preparar el archivo para compartir.'));
+  reader.onload = () => {
+    const value = typeof reader.result === 'string' ? reader.result : '';
+    const separator = value.indexOf(',');
+    resolve(separator >= 0 ? value.slice(separator + 1) : value);
+  };
+  reader.readAsDataURL(blob);
+});
+
+const exportTitle = (document: WeeklyExportDocument) => document.kind === 'summary'
+  ? 'Resumen semanal Bokatas'
+  : 'Lista de la compra Bokatas';
+
+const exportFilename = (document: WeeklyExportDocument) => `${document.kind === 'summary' ? 'resumen-semanal' : 'lista-compra'}-${document.weekKey}.png`;
+
+/**
+ * Native share sheets only accept local file URIs. The PNG is deliberately
+ * written to temporary app storage: it never leaves the device until the user
+ * chooses a destination in the system share sheet.
+ */
+const shareNativePng = async (png: Blob, document: WeeklyExportDocument) => {
+  const filename = exportFilename(document);
+  const path = `bokatas-exports/${filename}`;
+  const base64 = await blobToBase64(png);
+  const stored = await Filesystem.writeFile({ path, data: base64, directory: Directory.Temporary, recursive: true });
+  try {
+    const capability = await Share.canShare();
+    if (!capability.value) throw new Error('El dispositivo no permite compartir archivos.');
+    await Share.share({ title: exportTitle(document), files: [stored.uri], dialogTitle: 'Compartir documento Bokatas' });
+  } finally {
+    // The native share operation receives the URI before this promise settles.
+    // Cache storage is also ephemeral, so a failed cleanup never retains user data.
+    await Filesystem.deleteFile({ path, directory: Directory.Temporary }).catch(() => undefined);
+  }
+};
+
 export const shareOrDownloadExport = async (exportData: WeeklyExportDocument): Promise<'shared' | 'downloaded'> => {
   const png = await exportDocumentToPng(exportData);
-  const filename = `${exportData.kind === 'summary' ? 'resumen-semanal' : 'lista-compra'}-${exportData.weekKey}.png`;
+  const filename = exportFilename(exportData);
+  if (Capacitor.isNativePlatform()) {
+    await shareNativePng(png, exportData);
+    return 'shared';
+  }
   const file = new File([png], filename, { type: 'image/png' });
   const navigatorWithShare = navigator as Navigator & { canShare?: (data?: ShareData) => boolean };
   if (navigatorWithShare.share && (!navigatorWithShare.canShare || navigatorWithShare.canShare({ files: [file] }))) {
-    await navigatorWithShare.share({ files: [file], title: exportData.kind === 'summary' ? 'Resumen semanal Bokatas' : 'Lista de la compra Bokatas' });
+    await navigatorWithShare.share({ files: [file], title: exportTitle(exportData) });
     return 'shared';
   }
   const url = URL.createObjectURL(png);

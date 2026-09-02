@@ -35,6 +35,7 @@ const installMocks = async (page, { volunteer = false } = {}) => {
     export const updateContributorProfile = async () => undefined;
     export const changeContributorPassword = async () => undefined;
     export const changeContributorEmail = async () => undefined;
+    export const deleteContributorAccount = async () => undefined;
   ` }));
 };
 

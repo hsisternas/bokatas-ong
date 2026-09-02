@@ -17,6 +17,7 @@ const installModuleMocks = async (page) => {
       export const updateContributorProfile = async () => undefined;
       export const changeContributorPassword = async () => undefined;
       export const changeContributorEmail = async () => undefined;
+      export const deleteContributorAccount = async () => undefined;
     ` });
   });
   await page.route('**/services/firebaseClient.ts*', async (route) => {
@@ -104,7 +105,8 @@ const installModuleMocks = async (page) => {
 
 const loginVolunteer = async (page) => {
   await page.goto(BASE_URL, { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: /Acceso voluntarios|Volunteer access/i }).click();
+  await page.getByRole('button', { name: 'Abrir menú' }).click();
+  await page.getByRole('dialog', { name: 'Menú principal' }).getByRole('button', { name: /Acceso voluntarios|Volunteer access/i }).click();
   await page.locator('input[autocomplete="username"]').fill('ruta-5');
   await page.locator('input[type="password"]').fill('test-password');
   await page.getByRole('button', { name: /Entrar|Enter|Sign in/i }).click();

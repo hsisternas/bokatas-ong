@@ -7,7 +7,9 @@ const config: CapacitorConfig = {
   backgroundColor: '#f8fafc',
   plugins: {
     StatusBar: {
-      overlaysWebView: false,
+      // Let the header's safe-area background paint behind the iOS status bar.
+      // Keeping this false leaves UIKit's default black band above the WebView.
+      overlaysWebView: true,
     },
   },
 };

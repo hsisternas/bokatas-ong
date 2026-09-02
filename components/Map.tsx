@@ -168,16 +168,16 @@ const Map: React.FC<MapProps> = ({ resources, onMarkerClick, userLocation, heigh
   }, [map, resources, userLocation, locale, t, onMarkerClick]);
 
   if (error) {
-    return <div style={{ height, width: '100%' }} className="flex items-center justify-center bg-gray-200 text-gray-600">{error}</div>
+    return <div data-testid="map" style={{ height, width: '100%' }} className="flex items-center justify-center bg-gray-200 text-gray-600">{error}</div>
   }
   
   if (!GOOGLE_MAPS_API_KEY) {
-    return <div style={{ height, width: '100%' }} className="flex items-center justify-center bg-red-100 text-red-700 p-4 text-center">
+    return <div data-testid="map" style={{ height, width: '100%' }} className="flex items-center justify-center bg-red-100 text-red-700 p-4 text-center">
         Map is not available. Please configure the VITE_GOOGLE_MAPS_API_KEY environment variable.
     </div>
   }
 
-  return <div ref={ref} style={{ height, width: '100%' }} className="bg-gray-200" />;
+  return <div data-testid="map" ref={ref} style={{ height, width: '100%' }} className="bg-gray-200" />;
 };
 
 export default Map;

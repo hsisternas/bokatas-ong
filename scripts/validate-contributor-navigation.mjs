@@ -12,7 +12,7 @@ const installMocks = async (page) => {
     export const signUpContributor = async () => setUser({uid:'qa', email:'qa@example.org', displayName:'QA', providerData:[]});
     export const signInContributorGoogle = async () => setUser({uid:'qa', email:'qa@example.org', displayName:'QA', providerData:[]});
     export const resetContributorPassword = async () => undefined; export const logoutAuthenticatedUser = async () => setUser(null);
-    export const updateContributorProfile = async () => undefined; export const changeContributorPassword = async () => undefined; export const changeContributorEmail = async () => undefined;
+    export const updateContributorProfile = async () => undefined; export const changeContributorPassword = async () => undefined; export const changeContributorEmail = async () => undefined; export const deleteContributorAccount = async () => setUser(null);
   ` }));
 };
 
@@ -31,6 +31,10 @@ const verify = async (name, contextOptions) => {
     await contributorMenu.getByRole('button', { name: 'Hazte voluntario' }).waitFor();
     await contributorMenu.getByRole('button', { name: /Mis recursos/i }).click();
     await page.getByRole('heading', { name: 'Mis recursos' }).last().waitFor({ timeout: 5000 });
+    await page.getByRole('button', { name: 'Mi cuenta' }).click();
+    await page.getByRole('button', { name: 'Eliminar cuenta' }).click();
+    await page.getByRole('heading', { name: 'Eliminar cuenta' }).last().waitFor({ timeout: 5000 });
+    if (!page.url().endsWith('/eliminar-cuenta')) throw new Error(`${name}: contributor deletion does not have its required public URL.`);
     console.log(`[ok] ${name}: signup preserves the add-resource intent and account navigation is visible.`);
   } finally { await browser.close(); }
 };

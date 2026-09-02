@@ -42,3 +42,6 @@ functions/.runtimeconfig.json
 *.key
 *service-account*.json
 *firebase-adminsdk*.json
+
+# Xcode generates this workspace state while resolving Capacitor Swift packages.
+ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/

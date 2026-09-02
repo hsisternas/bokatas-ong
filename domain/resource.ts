@@ -61,6 +61,7 @@ export interface ResourceEvent {
 export interface UserProfile {
   uid: string;
   role: 'collaborator';
+  accountLifecycle: 'self-managed';
   displayName: string;
   email: string;
   createdAt: string;

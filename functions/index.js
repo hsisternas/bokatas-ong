@@ -1,5 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import { getApps, initializeApp } from 'firebase-admin/app';
+import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import * as logger from 'firebase-functions/logger';
 import { HttpsError, onCall, onRequest } from 'firebase-functions/v2/https';
@@ -8,6 +9,7 @@ import { defineSecret } from 'firebase-functions/params';
 const geminiApiKey = defineSecret('GEMINI_API_KEY');
 const model = 'gemini-3.6-flash';
 const db = getApps().length ? getFirestore() : (initializeApp(), getFirestore());
+const adminAuth = getAuth();
 const CATEGORY_IDS = new Set(['primeros-pasos', 'albergues', 'comida', 'higiene', 'salud', 'ropa', 'empleo', 'juridico', 'clases', 'mujer', 'orientacion', 'calle', 'otros']);
 const VOLUNTEER_EMAIL = /^ruta-([1-9])@voluntarios\.bokatas\.local$/;
 const MAX_TEXT = 4000;
@@ -63,6 +65,7 @@ const addEvent = (transaction, resourceRef, event) => {
 export const saveContributorResource = onCall({ region: 'europe-west1' }, async (request) => {
   const auth = requireAuth(request);
   if (VOLUNTEER_EMAIL.test(auth.token.email || '')) throw new HttpsError('permission-denied', 'Use the volunteer resource workflow.');
+  if (request.data?.contentPolicyAccepted !== true) throw new HttpsError('failed-precondition', 'Content policy acceptance is required.');
   const input = validateResourceInput(request.data?.resource);
   const resourceId = cleanText(request.data?.resourceId, { max: 200 });
   const now = new Date().toISOString();
@@ -109,6 +112,70 @@ export const requestResourceWithdrawal = onCall({ region: 'europe-west1' }, asyn
     addEvent(transaction, resourceRef, { type: 'withdrawal_requested', actorUid: auth.uid, actorEmail: auth.token.email || '', actorRole: 'collaborator' });
   });
   return { id: resourceId };
+});
+
+/**
+ * Self-service deletion is deliberately separate from the client Auth API:
+ * the server removes associated contributor data and makes approved catalogue
+ * entries anonymous before deleting the Firebase Auth identity. Volunteer
+ * accounts are organisation-managed and are rejected here.
+ */
+export const deleteContributorAccount = onCall({ region: 'europe-west1' }, async (request) => {
+  const auth = requireAuth(request);
+  if (VOLUNTEER_EMAIL.test(auth.token.email || '')) throw new HttpsError('permission-denied', 'Volunteer accounts are organisation-managed.');
+  const authTime = Number(auth.token.auth_time || 0);
+  if (!authTime || (Date.now() / 1000) - authTime > 300) {
+    throw new HttpsError('failed-precondition', 'Recent authentication is required.');
+  }
+
+  const profile = await db.collection('userProfiles').doc(auth.uid).get();
+  if (profile.exists && profile.data().accountLifecycle && profile.data().accountLifecycle !== 'self-managed') {
+    throw new HttpsError('permission-denied', 'This account is not self-managed.');
+  }
+  const owned = await db.collection('resources').where('ownerUid', '==', auth.uid).get();
+  const published = owned.docs.filter((resource) => resource.data().status === 'published');
+  const removable = owned.docs.filter((resource) => resource.data().status !== 'published');
+  // Apple explicitly includes user-generated content shared with others in the
+  // deletion expectation. Until Bokatas approves a lawful retention policy for
+  // moderated public records, fail before changing any data rather than silently
+  // retaining content after claiming full account deletion.
+  if (published.length) throw new HttpsError('failed-precondition', 'published-resources-require-policy');
+
+  // Pending, rejected, withdrawn and archived proposals are no longer useful
+  // catalogue records once their owner disappears; recursive deletion also
+  // removes their private event trails.
+  for (const resource of removable) await db.recursiveDelete(resource.ref);
+  await db.collection('userProfiles').doc(auth.uid).delete();
+  await adminAuth.deleteUser(auth.uid);
+
+  logger.info('Contributor account deleted', { deletedPrivateResourceCount: removable.length });
+  return { deleted: true };
+});
+
+/** A lightweight public safety/reporting channel for catalogue entries. */
+export const reportResourceProblem = onCall({ region: 'europe-west1' }, async (request) => {
+  const resourceId = cleanText(request.data?.resourceId, { required: true, max: 200 });
+  const resourceName = cleanText(request.data?.resourceName, { required: true, max: 180 });
+  const reason = cleanText(request.data?.reason, { required: true, max: 120 });
+  const details = cleanText(request.data?.details, { max: 1200 });
+  const allowedReasons = new Set(['incorrect', 'closed', 'safety', 'other']);
+  if (!allowedReasons.has(reason)) throw new HttpsError('invalid-argument', 'Unknown report reason.');
+  await db.collection('resourceReports').add({
+    resourceId, resourceName, reason, details, status: 'pending', createdAt: new Date().toISOString(),
+    reporterUid: request.auth?.uid || null,
+  });
+  return { received: true };
+});
+
+/** Closes a report after a volunteer has checked the catalogue entry. */
+export const resolveResourceReport = onCall({ region: 'europe-west1' }, async (request) => {
+  const auth = requireVolunteer(request);
+  const reportId = cleanText(request.data?.reportId, { required: true, max: 200 });
+  const reportRef = db.collection('resourceReports').doc(reportId);
+  const report = await reportRef.get();
+  if (!report.exists) throw new HttpsError('not-found', 'Report not found.');
+  await reportRef.update({ status: 'resolved', resolvedAt: new Date().toISOString(), resolvedBy: auth.uid });
+  return { resolved: true };
 });
 
 // This keeps the established volunteer experience while putting additions and

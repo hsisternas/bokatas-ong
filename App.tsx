@@ -9,6 +9,8 @@ import VolunteerArea from './components/VolunteerArea';
 import VolunteerLoginModal from './components/VolunteerLoginModal';
 import ContributorAuthModal from './components/contributor/ContributorAuthModal';
 import ContributorArea from './components/contributor/ContributorArea';
+import AccountDeletionPage from './components/contributor/AccountDeletionPage';
+import ContentPolicyPage from './components/ContentPolicyPage';
 import VolunteerSignupPage from './components/VolunteerSignupPage';
 import MobileNavigationMenu from './components/MobileNavigationMenu';
 import Header from './components/Header';
@@ -22,11 +24,16 @@ import { isLegacyCatalogMigrated, getPublishedResourceRecords } from './services
 import { isVolunteerUser, logoutAuthenticatedUser, subscribeAuthUser } from './services/contributorAuthService';
 import { toPublicResource } from './domain/resource';
 import { syncNativeTheme } from './services/nativePlatform';
+import { App as CapacitorApp } from '@capacitor/app';
+import { isNativePlatform } from './services/nativePlatform';
 import type { User } from 'firebase/auth';
 
-const getInitialView = (): View => window.location.pathname === '/hazte-voluntario'
-  ? { type: 'volunteer-signup' }
-  : { type: 'categories' };
+const getInitialView = (): View => {
+  if (window.location.pathname === '/hazte-voluntario') return { type: 'volunteer-signup' };
+  if (window.location.pathname === '/eliminar-cuenta') return { type: 'account-deletion' };
+  if (window.location.pathname === '/normas-de-contenido') return { type: 'content-policy' };
+  return { type: 'categories' };
+};
 
 const App: React.FC = () => {
   const [view, setView] = useState<View>(getInitialView);
@@ -40,7 +47,7 @@ const App: React.FC = () => {
   const [isContributorAuthOpen, setIsContributorAuthOpen] = useState(false);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [contributorScreen, setContributorScreen] = useState<'list' | 'create'>('list');
-  const [pendingContributorIntent, setPendingContributorIntent] = useState<'list' | 'create' | null>(null);
+  const [pendingContributorIntent, setPendingContributorIntent] = useState<'list' | 'create' | 'delete' | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isVolunteerAccessPendingRef = useRef(false);
   
@@ -70,11 +77,45 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locale]);
 
+  const navigateToPath = (pathname: string) => {
+    if (pathname === '/hazte-voluntario') { setView({ type: 'volunteer-signup' }); return; }
+    if (pathname === '/eliminar-cuenta') { setView({ type: 'account-deletion' }); return; }
+    if (pathname === '/normas-de-contenido') { setView({ type: 'content-policy' }); return; }
+    const categoryMatch = pathname.match(/^\/categoria\/([^/]+)$/);
+    if (categoryMatch) {
+      const category = categories.find((item) => item.id === decodeURIComponent(categoryMatch[1]));
+      if (category) { setView({ type: 'list', category }); return; }
+    }
+    const resourceMatch = pathname.match(/^\/recurso\/([^/]+)$/);
+    if (resourceMatch) {
+      const resource = resources.find((item) => item.id === decodeURIComponent(resourceMatch[1]));
+      if (resource) { setView({ type: 'detail', resource }); return; }
+    }
+    setView({ type: 'categories' });
+  };
+
   useEffect(() => {
-    const handlePopState = () => setView(getInitialView());
+    const handlePopState = () => navigateToPath(window.location.pathname);
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  // Resource data is intentionally included: a cold deep link resolves after
+  // the public catalogue has loaded.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, resources]);
+
+  useEffect(() => {
+    if (!isNativePlatform()) return;
+    let listener: { remove: () => Promise<void> } | undefined;
+    void CapacitorApp.addListener('appUrlOpen', ({ url }) => {
+      try {
+        const pathname = new URL(url).pathname || '/';
+        window.history.pushState({}, '', pathname);
+        navigateToPath(pathname);
+      } catch { navigateToHome(); }
+    }).then((handle) => { listener = handle; });
+    return () => { void listener?.remove(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, resources]);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme');
@@ -119,9 +160,12 @@ const App: React.FC = () => {
         return;
       }
       if (user && !isVolunteerUser(user) && pendingContributorIntent) {
-        setContributorScreen(pendingContributorIntent);
+        if (pendingContributorIntent === 'delete') setView({ type: 'account-deletion' });
+        else {
+          setContributorScreen(pendingContributorIntent);
+          setView({ type: 'contributor' });
+        }
         setPendingContributorIntent(null);
-        setView({ type: 'contributor' });
         return;
       }
       if (!user) {
@@ -139,10 +183,12 @@ const App: React.FC = () => {
   }, [view]);
 
   const navigateToCategory = (category: Category) => {
+    window.history.pushState({}, '', `/categoria/${encodeURIComponent(category.id)}`);
     setView({ type: 'list', category });
   };
 
   const navigateToDetail = (resource: Resource) => {
+    window.history.pushState({}, '', `/recurso/${encodeURIComponent(resource.id)}`);
     setView({ type: 'detail', resource });
   };
 
@@ -173,6 +219,10 @@ const App: React.FC = () => {
     } else if (view.type === 'list') {
       setView({ type: 'categories' });
     } else if (view.type === 'volunteer-signup') {
+      navigateToHome();
+    } else if (view.type === 'account-deletion') {
+      navigateToHome();
+    } else if (view.type === 'content-policy') {
       navigateToHome();
     }
   };
@@ -207,10 +257,19 @@ const App: React.FC = () => {
         );
       case 'contributor':
         return authUser && !isVolunteerUser(authUser)
-          ? <ContributorArea user={authUser} categories={categories} initialScreen={contributorScreen} onLogout={handleContributorLogout} />
+          ? <ContributorArea user={authUser} categories={categories} initialScreen={contributorScreen} onLogout={handleContributorLogout} onDeleteAccount={() => { window.history.pushState({}, '', '/eliminar-cuenta'); setView({ type: 'account-deletion' }); }} />
           : <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} onContribute={openContribution} />;
       case 'volunteer-signup':
         return <VolunteerSignupPage />;
+      case 'account-deletion':
+        return <AccountDeletionPage
+          user={authUser && !isVolunteerUser(authUser) ? authUser : null}
+          onAuthenticate={() => { setPendingContributorIntent('delete'); setIsContributorAuthOpen(true); }}
+          onDeleted={navigateToHome}
+          onBack={navigateToHome}
+        />;
+      case 'content-policy':
+        return <ContentPolicyPage />;
       default:
         return <CategoryGrid categories={categories} onSelectCategory={navigateToCategory} />;
     }
@@ -230,6 +289,10 @@ const App: React.FC = () => {
         return 'Mis recursos';
       case 'volunteer-signup':
         return 'Hazte voluntario';
+      case 'account-deletion':
+        return 'Eliminar cuenta';
+      case 'content-policy':
+        return 'Normas de publicación';
     }
   };
 
@@ -313,7 +376,7 @@ const App: React.FC = () => {
     setResources((prev) => prev.map((resource) => (resource.id === updated.id ? updated : resource)));
   };
   
-  const showBackButton = view.type === 'list' || view.type === 'detail' || view.type === 'volunteer' || view.type === 'contributor' || view.type === 'volunteer-signup';
+  const showBackButton = view.type === 'list' || view.type === 'detail' || view.type === 'volunteer' || view.type === 'contributor' || view.type === 'volunteer-signup' || view.type === 'account-deletion' || view.type === 'content-policy';
   const showHomeButton = view.type !== 'categories';
   const volunteerRouteId = getRouteIdFromEmail(authUser?.email || null);
 

@@ -66,9 +66,9 @@ export const getResourceRecord = async (resourceId: string): Promise<ResourceRec
   return result.exists() ? mapRecord(result.id, result.data()) : null;
 };
 
-export const saveContributorResource = async (resource: ResourceInput, resourceId?: string): Promise<string> => {
+export const saveContributorResource = async (resource: ResourceInput, resourceId?: string, contentPolicyAccepted = false): Promise<string> => {
   requireFirebase();
-  const result = await httpsCallable(functions!, 'saveContributorResource')({ resource, resourceId: resourceId || '' });
+  const result = await httpsCallable(functions!, 'saveContributorResource')({ resource, resourceId: resourceId || '', contentPolicyAccepted });
   return (result.data as { id: string }).id;
 };
 
@@ -86,4 +86,40 @@ export const requestResourceWithdrawal = async (resourceId: string): Promise<voi
 export const reviewResource = async (resourceId: string, action: 'approve' | 'reject' | 'archive', comment = ''): Promise<void> => {
   requireFirebase();
   await httpsCallable(functions!, 'reviewResource')({ resourceId, action, comment });
+};
+
+export const reportResourceProblem = async (resourceId: string, resourceName: string, reason: string, details: string): Promise<void> => {
+  requireFirebase();
+  await httpsCallable(functions!, 'reportResourceProblem')({ resourceId, resourceName, reason, details });
+};
+
+export type ResourceReport = {
+  id: string;
+  resourceId: string;
+  resourceName: string;
+  reason: string;
+  details: string;
+  createdAt: string;
+};
+
+/** Volunteer-only moderation inbox for public catalogue corrections. */
+export const getPendingResourceReports = async (): Promise<ResourceReport[]> => {
+  requireFirebase();
+  const result = await getDocs(query(collection(db!, 'resourceReports'), where('status', '==', 'pending'), orderBy('createdAt', 'asc')));
+  return result.docs.map((item) => {
+    const data = item.data();
+    return {
+      id: item.id,
+      resourceId: String(data.resourceId || ''),
+      resourceName: String(data.resourceName || ''),
+      reason: String(data.reason || ''),
+      details: String(data.details || ''),
+      createdAt: String(data.createdAt || ''),
+    };
+  });
+};
+
+export const resolveResourceReport = async (reportId: string): Promise<void> => {
+  requireFirebase();
+  await httpsCallable(functions!, 'resolveResourceReport')({ reportId });
 };

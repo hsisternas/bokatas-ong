@@ -7,16 +7,18 @@ interface ResourceFormProps {
   categories: Category[];
   initialValue?: ResourceInput;
   submitLabel: string;
-  onSubmit: (value: ResourceInput) => Promise<void>;
+  onSubmit: (value: ResourceInput, options?: { contentPolicyAccepted: boolean }) => Promise<void>;
   onCancel?: () => void;
+  requireContentPolicy?: boolean;
 }
 
 const isValenciaMetro = (latitude: number, longitude: number) => latitude >= 39.28 && latitude <= 39.68 && longitude >= -0.62 && longitude <= -0.12;
 
-const ResourceForm: React.FC<ResourceFormProps> = ({ categories, initialValue, submitLabel, onSubmit, onCancel }) => {
+const ResourceForm: React.FC<ResourceFormProps> = ({ categories, initialValue, submitLabel, onSubmit, onCancel, requireContentPolicy = false }) => {
   const [value, setValue] = useState<ResourceInput>(initialValue || { ...emptyResourceInput(), categoryId: categories[0]?.id || 'otros' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [contentPolicyAccepted, setContentPolicyAccepted] = useState(false);
   const addressRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { if (initialValue) setValue(initialValue); }, [initialValue]);
@@ -44,7 +46,8 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ categories, initialValue, s
       setError('Selecciona una dirección dentro de Valencia y su área metropolitana.'); return;
     }
     setSaving(true);
-    try { await onSubmit(value); } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo guardar el recurso.'); } finally { setSaving(false); }
+    if (requireContentPolicy && !contentPolicyAccepted) { setError('Confirma las normas de publicación antes de enviar el recurso.'); return; }
+    try { await onSubmit(value, { contentPolicyAccepted }); } catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo guardar el recurso.'); } finally { setSaving(false); }
   };
   return <form onSubmit={handleSubmit} className="space-y-4" noValidate>
     <div className="grid gap-4 sm:grid-cols-2">
@@ -55,6 +58,7 @@ const ResourceForm: React.FC<ResourceFormProps> = ({ categories, initialValue, s
     <label className="form-label">Dirección<input ref={addressRef} required value={value.address} onChange={(event) => { update('address', event.target.value); update('latitude', null); update('longitude', null); }} className="form-control" placeholder="Empieza a escribir una dirección de Valencia" maxLength={500} /><span className="mt-1 block text-xs text-text-light">Selecciona una sugerencia para situarlo en el mapa.</span></label>
     <div className="grid gap-4 sm:grid-cols-2"><label className="form-label">Teléfono <span className="font-normal">(opcional)</span><input value={value.phone} onChange={(event) => update('phone', event.target.value)} className="form-control" maxLength={120} /></label><label className="form-label">Email <span className="font-normal">(opcional)</span><input type="email" value={value.email} onChange={(event) => update('email', event.target.value)} className="form-control" maxLength={320} /></label></div>
     <div className="grid gap-4 sm:grid-cols-2"><label className="form-label">Web <span className="font-normal">(opcional)</span><input type="url" value={value.website} onChange={(event) => update('website', event.target.value)} className="form-control" placeholder="https://" maxLength={500} /></label><label className="form-label">Horario <span className="font-normal">(opcional)</span><input value={value.scheduleRaw} onChange={(event) => update('scheduleRaw', event.target.value)} className="form-control" placeholder="L a V, de 9:00 a 14:00" maxLength={1000} /></label></div>
+    {requireContentPolicy && <label className="flex items-start gap-3 rounded-xl bg-secondary/50 p-3 text-sm"><input className="mt-1 h-5 w-5" type="checkbox" checked={contentPolicyAccepted} onChange={(event) => setContentPolicyAccepted(event.target.checked)} required /><span>Confirmo que la información es útil y veraz, que no incluye datos personales innecesarios y que cumple las <a className="link-button underline" href="/normas-de-contenido">normas de publicación</a>. Bokatas revisará el recurso antes de publicarlo.</span></label>}
     {error && <p className="text-sm text-red-700" role="alert">{error}</p>}
     <div className="flex flex-wrap gap-3"><button className="button-primary" type="submit" disabled={saving}>{saving ? 'Guardando…' : submitLabel}</button>{onCancel && <button className="button-secondary" type="button" onClick={onCancel}>Cancelar</button>}</div>
   </form>;

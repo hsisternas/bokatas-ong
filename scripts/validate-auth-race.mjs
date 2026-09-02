@@ -20,6 +20,7 @@ const installModuleMocks = async (page) => {
       export const updateContributorProfile = async () => undefined;
       export const changeContributorPassword = async () => undefined;
       export const changeContributorEmail = async () => undefined;
+      export const deleteContributorAccount = async () => undefined;
     ` });
   });
   await page.route('**/services/firebaseClient.ts*', async (route) => {

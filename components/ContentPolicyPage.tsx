@@ -1,0 +1,5 @@
+import React from 'react';
+
+const ContentPolicyPage: React.FC = () => <section className="panel mx-auto max-w-3xl"><h1 className="text-3xl font-bold">Normas de publicación</h1><p className="mt-4 text-text-light">Los recursos enviados se revisan antes de aparecer en Bokatas. Comparte solo información que pueda ayudar y que conozcas de buena fe.</p><ul className="mt-6 list-disc space-y-3 ps-5"><li>Incluye datos útiles, claros y verificables del recurso.</li><li>No incluyas datos personales, información sensible ni contenido que pueda poner a alguien en riesgo.</li><li>No envíes contenido engañoso, discriminatorio, ilegal, ofensivo o que infrinja derechos de terceros.</li><li>Bokatas puede corregir, rechazar, retirar o actualizar una propuesta para proteger a las personas usuarias y el catálogo.</li></ul><p className="mt-6 text-sm text-text-light">Para el tratamiento de tus datos consulta la <a className="link-button underline" href="https://bokatas.org/politica-de-privacidad/" target="_blank" rel="noreferrer">política de privacidad de Bokatas</a>.</p></section>;
+
+export default ContentPolicyPage;

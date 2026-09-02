@@ -93,4 +93,6 @@ export type View =
   | { type: 'detail'; resource: Resource }
   | { type: 'volunteer' }
   | { type: 'contributor' }
-  | { type: 'volunteer-signup' };
+  | { type: 'volunteer-signup' }
+  | { type: 'account-deletion' }
+  | { type: 'content-policy' };

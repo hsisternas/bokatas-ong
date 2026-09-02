@@ -22,6 +22,22 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Custom scheme works before store identifiers are final. HTTPS
+                 app links activate after assetlinks.json is hosted for bokatas.web.app. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bokatas" />
+            </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="bokatas.web.app" android:pathPrefix="/categoria" />
+                <data android:scheme="https" android:host="bokatas.web.app" android:pathPrefix="/recurso" />
+            </intent-filter>
+
         </activity>
 
         <provider
