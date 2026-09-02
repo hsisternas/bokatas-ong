@@ -50,6 +50,7 @@ const App: React.FC = () => {
   const [pendingContributorIntent, setPendingContributorIntent] = useState<'list' | 'create' | 'delete' | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const isVolunteerAccessPendingRef = useRef(false);
+  const pendingNativePathRef = useRef<string | null>(null);
   
   const { location, error: locationError, loading: isLocationLoading, requestLocation } = useGeolocation();
   const { t, locale } = useTranslation();
@@ -104,15 +105,44 @@ const App: React.FC = () => {
   }, [categories, resources]);
 
   useEffect(() => {
+    const pathname = pendingNativePathRef.current;
+    if (!pathname) return;
+    const categoryId = pathname.match(/^\/categoria\/([^/]+)$/)?.[1];
+    const resourceId = pathname.match(/^\/recurso\/([^/]+)$/)?.[1];
+    const canResolve =
+      (categoryId && categories.some((category) => category.id === decodeURIComponent(categoryId))) ||
+      (resourceId && resources.some((resource) => resource.id === decodeURIComponent(resourceId)));
+    if (canResolve) {
+      pendingNativePathRef.current = null;
+      navigateToPath(pathname);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories, resources]);
+
+  useEffect(() => {
     if (!isNativePlatform()) return;
     let listener: { remove: () => Promise<void> } | undefined;
-    void CapacitorApp.addListener('appUrlOpen', ({ url }) => {
+    const handleNativeUrl = (url: string) => {
       try {
-        const pathname = new URL(url).pathname || '/';
+        const incoming = new URL(url);
+        // Custom-scheme URLs place the first path segment in `hostname`:
+        // bokatas://categoria/comida -> hostname "categoria", pathname "/comida".
+        // HTTPS Universal/App Links already use the pathname directly.
+        const pathname = incoming.protocol === 'bokatas:' && incoming.hostname
+          ? `/${incoming.hostname}${incoming.pathname}`
+          : incoming.pathname || '/';
+        pendingNativePathRef.current = pathname;
         window.history.pushState({}, '', pathname);
         navigateToPath(pathname);
       } catch { navigateToHome(); }
-    }).then((handle) => { listener = handle; });
+    };
+    void CapacitorApp.addListener('appUrlOpen', ({ url }) => handleNativeUrl(url))
+      .then((handle) => { listener = handle; });
+    // App URL events only cover a running app. Resolve the initial URL too so
+    // an app opened from a cold custom/Universal Link reaches its destination.
+    void CapacitorApp.getLaunchUrl().then((launch) => {
+      if (launch?.url) handleNativeUrl(launch.url);
+    });
     return () => { void listener?.remove(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categories, resources]);
